@@ -29,7 +29,10 @@ func SetDepth(ctx context.Context, c Client, workdir, path string, depth config.
 }
 
 func UpdateRoot(ctx context.Context, c Client, workdir, revision string) error {
-	args := []string{"update", "-r", revision}
+	args := []string{"update"}
+	if revision != "" {
+		args = append(args, "-r", revision)
+	}
 	return runAndCheck(ctx, c, workdir, args)
 }
 
