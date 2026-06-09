@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -506,7 +505,7 @@ paths:
 		Logger:     newLogger(),
 	}
 
-	result, err := Compute(opts)
+	result, err := Compute(context.Background(), opts)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -542,7 +541,7 @@ func TestCompute_URLRequired(t *testing.T) {
 		Logger:     newLogger(),
 	}
 
-	_, err := Compute(opts)
+	_, err := Compute(context.Background(), opts)
 	if err == nil {
 		t.Fatal("expected error for missing URL")
 	}
@@ -730,8 +729,8 @@ paths:
 	if result.FailedAction == nil {
 		t.Fatal("expected FailedAction")
 	}
-	if !errors.Is(result.Err, result.Err) {
-		t.Error("expected Err to be set")
+	if result.Err == nil {
+		t.Fatal("expected Err to be set")
 	}
 }
 
@@ -757,7 +756,7 @@ paths:
 		Logger:      newLogger(),
 	}
 
-	result, err := Compute(opts)
+	result, err := Compute(context.Background(), opts)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

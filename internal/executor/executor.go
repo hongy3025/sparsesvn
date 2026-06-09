@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/sparsesvn/sparsesvn/internal/config"
@@ -113,6 +114,7 @@ func Apply(ctx context.Context, opts Options) *Result {
 	// Step 10: dry run
 	if opts.DryRun {
 		r.ExecutedCount = 0
+		r.StateAfter = buildState(configHash, finalURL, current)
 		return r
 	}
 
@@ -169,10 +171,9 @@ func Apply(ctx context.Context, opts Options) *Result {
 }
 
 // Compute calculates the plan without executing svn commands or writing state.
-func Compute(opts Options) (*Result, error) {
-	// Steps 1-9 only, equivalent to Apply with DryRun
+func Compute(ctx context.Context, opts Options) (*Result, error) {
 	opts.DryRun = true
-	r := Apply(context.Background(), opts)
+	r := Apply(ctx, opts)
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -184,6 +185,7 @@ func buildState(configHash, url string, current map[string]config.Depth) *state.
 	for p, d := range current {
 		paths = append(paths, state.PathEntry{Path: p, Depth: d})
 	}
+	sort.Slice(paths, func(i, j int) bool { return paths[i].Path < paths[j].Path })
 	return &state.State{
 		Version:    state.StateVersion,
 		ConfigHash: configHash,
