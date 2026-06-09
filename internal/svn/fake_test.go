@@ -48,8 +48,8 @@ func TestFakeClient_FailOnMatches(t *testing.T) {
 	ctx := context.Background()
 	// 匹配
 	result, err := f.Run(ctx, "", "update", "src/nonexistent")
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 	if result.ExitCode != 1 {
 		t.Errorf("expected exit code 1, got %d", result.ExitCode)

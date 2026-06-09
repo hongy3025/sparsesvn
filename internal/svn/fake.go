@@ -2,7 +2,6 @@ package svn
 
 import (
 	"context"
-	"fmt"
 	"strings"
 )
 
@@ -40,7 +39,7 @@ func (f *FakeClient) Run(ctx context.Context, cwd string, args ...string) (*Resu
 				Args:     args,
 				Stderr:   rule.Stderr,
 				ExitCode: rule.ExitCode,
-			}, fmt.Errorf("fake failure: %s", rule.Stderr)
+			}, nil
 		}
 	}
 	// 默认成功
