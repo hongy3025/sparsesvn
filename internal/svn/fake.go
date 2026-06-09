@@ -31,12 +31,13 @@ type FakeFailRule struct {
 }
 
 func (f *FakeClient) Run(ctx context.Context, cwd string, args ...string) (*Result, error) {
-	f.Calls = append(f.Calls, FakeCall{Cwd: cwd, Args: args})
+	argsCopy := append([]string{}, args...)
+	f.Calls = append(f.Calls, FakeCall{Cwd: cwd, Args: argsCopy})
 	// 检查是否匹配失败规则
 	for _, rule := range f.FailOn {
-		if matchFailRule(rule, args) {
+		if matchFailRule(rule, argsCopy) {
 			return &Result{
-				Args:     args,
+				Args:     argsCopy,
 				Stderr:   rule.Stderr,
 				ExitCode: rule.ExitCode,
 			}, nil
@@ -44,7 +45,7 @@ func (f *FakeClient) Run(ctx context.Context, cwd string, args ...string) (*Resu
 	}
 	// 默认成功
 	return &Result{
-		Args:     args,
+		Args:     argsCopy,
 		ExitCode: 0,
 	}, nil
 }
