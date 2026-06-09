@@ -7,10 +7,10 @@ import (
 
 func Validate(cfg *Config) error {
 	if cfg == nil {
-		return fmt.Errorf("validate: config is nil")
+		return fmt.Errorf("config is nil")
 	}
 	if len(cfg.Paths) == 0 {
-		return fmt.Errorf("validate: paths must not be empty")
+		return fmt.Errorf("paths must not be empty")
 	}
 
 	seen := make(map[string]int, len(cfg.Paths))
