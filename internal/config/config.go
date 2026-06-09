@@ -83,5 +83,8 @@ func Load(path string) (*Config, error) {
 		}
 		cfg.Paths = append(cfg.Paths, PathSpec{Path: rp.Path, Depth: d})
 	}
+	if err := Validate(cfg); err != nil {
+		return nil, fmt.Errorf("load config %s: %w", path, err)
+	}
 	return cfg, nil
 }
