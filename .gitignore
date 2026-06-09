@@ -1,1 +1,9 @@
-# .gitignore
+/sparsesvn
+/sparsesvn.exe
+/dist/
+*.test
+*.out
+coverage.txt
+.vscode/
+.idea/
+*.swp
