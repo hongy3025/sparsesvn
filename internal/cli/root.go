@@ -90,9 +90,20 @@ func countVerbose(cmd *cobra.Command) int {
 func validateAndDisplayContext(gf *GlobalFlags, out io.Writer) error {
 	workdir := gf.Workdir
 
+	// 加载配置获取 URL（所有场景都需要）
+	cfg, err := config.Load(gf.ConfigFile)
+	if err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+	finalURL := cfg.URL
+	if finalURL == "" {
+		return fmt.Errorf("URL required: provide in config or --url flag")
+	}
+
 	// Step 1: 检查 workdir 是否存在
 	if _, err := os.Stat(workdir); os.IsNotExist(err) {
 		// 目录不存在，可能是首次 checkout，允许继续
+		gf.ResolvedURL = finalURL
 		return nil
 	}
 
@@ -110,32 +121,22 @@ func validateAndDisplayContext(gf *GlobalFlags, out io.Writer) error {
 			return fmt.Errorf("current directory is not an SVN working copy. Use -C to specify working directory")
 		}
 		// 显式指定 -C 且无 .svn → 允许（首次 checkout）
+		gf.ResolvedURL = finalURL
 		return nil
 	}
 
-	// Step 3: .svn 存在，加载配置获取 URL
-	cfg, err := config.Load(gf.ConfigFile)
-	if err != nil {
-		return fmt.Errorf("invalid config: %w", err)
-	}
-
-	finalURL := cfg.URL
-	if finalURL == "" {
-		return fmt.Errorf("URL required: provide in config or --url flag")
-	}
-
-	// Step 4: 获取工作副本真实 URL
+	// Step 3: .svn 存在，获取工作副本真实 URL
 	wcURL, err := svn.GetWorkingCopyURL(context.Background(), svn.NewExecClient(), workdir)
 	if err != nil {
 		return fmt.Errorf("failed to get working copy URL: %w", err)
 	}
 
-	// Step 5: 比较 URL
+	// Step 4: 比较 URL
 	if wcURL != finalURL {
 		return fmt.Errorf("URL mismatch. Working copy has %q, config specifies %q. Use \"svn switch\" to change the working copy URL, or update your config", wcURL, finalURL)
 	}
 
-	// Step 6: 存储解析后的 URL
+	// Step 5: 存储解析后的 URL
 	gf.ResolvedURL = finalURL
 
 	return nil

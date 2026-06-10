@@ -21,7 +21,7 @@ func TestValidateWorkdir_DefaultWorkdir_NoSvn(t *testing.T) {
 	}
 
 	// 创建一个有效的配置文件
-	os.WriteFile(gf.ConfigFile, []byte("url: svn://example.com/repo\npaths: []"), 0644)
+	os.WriteFile(gf.ConfigFile, []byte("url: svn://example.com/repo\npaths:\n  - path: src\n    depth: infinity\n"), 0644)
 
 	err := validateAndDisplayContext(gf, os.Stdout)
 	if err == nil {
@@ -40,11 +40,14 @@ func TestValidateWorkdir_ExplicitWorkdir_NoSvn(t *testing.T) {
 	}
 
 	// 创建一个有效的配置文件
-	os.WriteFile(gf.ConfigFile, []byte("url: svn://example.com/repo\npaths: []"), 0644)
+	os.WriteFile(gf.ConfigFile, []byte("url: svn://example.com/repo\npaths:\n  - path: src\n    depth: infinity\n"), 0644)
 
 	err := validateAndDisplayContext(gf, os.Stdout)
 	if err != nil {
 		t.Fatalf("unexpected error for explicit workdir without .svn: %v", err)
+	}
+	if gf.ResolvedURL != "svn://example.com/repo" {
+		t.Errorf("ResolvedURL = %q, want %q", gf.ResolvedURL, "svn://example.com/repo")
 	}
 }
 
