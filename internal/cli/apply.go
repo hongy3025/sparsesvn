@@ -61,6 +61,12 @@ func runApply(ctx context.Context, gf *GlobalFlags, applyFlags ApplyFlags, clien
 	}
 	logger := logx.New(errOut, level, gf.JSON)
 
+	// 显示上下文信息（除非 quiet 模式）
+	if !gf.Quiet {
+		displayContext(errOut, gf.Workdir, gf.ResolvedURL, gf.ConfigFile)
+		fmt.Fprintln(errOut) // 空行分隔
+	}
+
 	opts := executor.Options{
 		ConfigPath:  gf.ConfigFile,
 		Workdir:     gf.Workdir,
