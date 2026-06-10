@@ -6,6 +6,8 @@ import (
 	"github.com/sparsesvn/sparsesvn/internal/cli"
 )
 
+var version = "dev"
+
 func main() {
-	os.Exit(cli.Execute())
+	os.Exit(cli.Execute(version))
 }

@@ -6,8 +6,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.1.0-dev"
-
 type GlobalFlags struct {
 	ConfigFile string
 	Workdir    string
@@ -24,7 +22,7 @@ type exitError struct {
 
 func (e *exitError) Error() string { return e.Err.Error() }
 
-func newRootCmd() *cobra.Command {
+func newRootCmd(version string) *cobra.Command {
 	var verbose int
 	gf := &GlobalFlags{}
 
@@ -68,8 +66,8 @@ func countVerbose(cmd *cobra.Command) int {
 	return n
 }
 
-func Execute() int {
-	cmd := newRootCmd()
+func Execute(version string) int {
+	cmd := newRootCmd(version)
 	cmd.SetOut(os.Stdout)
 	cmd.SetErr(os.Stderr)
 
