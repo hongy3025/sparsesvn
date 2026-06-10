@@ -7,12 +7,12 @@ A declarative, idempotent SVN sparse checkout management tool. Define which path
 ### From source
 
 ```bash
-go install github.com/sparsesvn/sparsesvn/cmd/sparsesvn@latest
+go install github.com/hongy3025/sparsesvn/cmd/sparsesvn@latest
 ```
 
 ### Pre-built binaries
 
-Download from [GitHub Releases](https://github.com/sparsesvn/sparsesvn/releases).
+Download from [GitHub Releases](https://github.com/hongy3025/sparsesvn/releases).
 
 ### Prerequisites
 
