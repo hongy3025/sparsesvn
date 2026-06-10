@@ -7,12 +7,14 @@ import (
 )
 
 type GlobalFlags struct {
-	ConfigFile string
-	Workdir    string
-	Verbose    int
-	Quiet      bool
-	JSON       bool
-	NoColor    bool
+	ConfigFile      string
+	Workdir         string
+	WorkdirExplicit bool   // 标记 -C 是否为用户显式指定
+	Verbose         int
+	Quiet           bool
+	JSON            bool
+	NoColor         bool
+	ResolvedURL     string // 解析后的最终 URL
 }
 
 type exitError struct {
