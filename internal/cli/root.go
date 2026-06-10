@@ -55,6 +55,7 @@ func newRootCmd(version string) *cobra.Command {
 			// 执行智能检测（validate 子命令跳过，因为它不需要 workdir）
 			if cmd.Name() != "validate" && cmd.Parent() != nil {
 				if err := validateAndDisplayContext(gf, cmd.ErrOrStderr()); err != nil {
+					fmt.Fprintln(cmd.ErrOrStderr(), "Error:", err)
 					return &exitError{Code: 2, Err: err}
 				}
 			}
