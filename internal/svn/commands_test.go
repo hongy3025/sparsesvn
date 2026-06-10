@@ -149,6 +149,45 @@ func TestIsWorkingCopy_False(t *testing.T) {
 	}
 }
 
+func TestGetWorkingCopyURL(t *testing.T) {
+	f := &FakeClient{
+		StdoutResponse: "svn://svn.example.com/repo/trunk\n",
+	}
+	ctx := context.Background()
+
+	got, err := GetWorkingCopyURL(ctx, f, "/tmp/w")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "svn://svn.example.com/repo/trunk" {
+		t.Errorf("GetWorkingCopyURL() = %q, want %q", got, "svn://svn.example.com/repo/trunk")
+	}
+	// 验证调用参数
+	if len(f.Calls) != 1 {
+		t.Fatalf("expected 1 call, got %d", len(f.Calls))
+	}
+	call := f.Calls[0]
+	want := []string{"info", "--show-item", "url"}
+	assertArgs(t, call.Args, want)
+	if call.Cwd != "/tmp/w" {
+		t.Errorf("cwd = %q, want %q", call.Cwd, "/tmp/w")
+	}
+}
+
+func TestGetWorkingCopyURL_NotWorkingCopy(t *testing.T) {
+	f := &FakeClient{
+		FailOn: []FakeFailRule{
+			{ArgsContains: []string{"info", "--show-item", "url"}, Stderr: "E155007", ExitCode: 1},
+		},
+	}
+	ctx := context.Background()
+
+	_, err := GetWorkingCopyURL(ctx, f, "/tmp/w")
+	if err == nil {
+		t.Fatal("expected error for non-working copy, got nil")
+	}
+}
+
 func TestSetDepth_FailingExitPropagatesError(t *testing.T) {
 	f := &FakeClient{
 		FailOn: []FakeFailRule{

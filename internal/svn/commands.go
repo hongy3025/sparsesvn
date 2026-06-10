@@ -50,6 +50,18 @@ func Exclude(ctx context.Context, c Client, workdir, path string, revision strin
 	return runAndCheck(ctx, c, workdir, args)
 }
 
+// GetWorkingCopyURL 通过 svn info 获取工作副本的真实 URL
+func GetWorkingCopyURL(ctx context.Context, c Client, workdir string) (string, error) {
+	result, err := c.Run(ctx, workdir, "info", "--show-item", "url")
+	if err != nil {
+		return "", fmt.Errorf("svn info: %w", err)
+	}
+	if result.ExitCode != 0 {
+		return "", fmt.Errorf("not a working copy: %s", result.Stderr)
+	}
+	return strings.TrimSpace(result.Stdout), nil
+}
+
 func runAndCheck(ctx context.Context, c Client, cwd string, args []string) error {
 	result, err := c.Run(ctx, cwd, args...)
 	if err != nil {

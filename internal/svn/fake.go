@@ -16,6 +16,8 @@ type FakeClient struct {
 	}
 	// FailOn：若 Args 匹配 FailOn 中的任一 pattern（按子串匹配），则返回 ExitCode=1 + Err
 	FailOn []FakeFailRule
+	// StdoutResponse：Run 方法返回的自定义 Stdout 内容（所有调用共享）
+	StdoutResponse string
 	// 默认 Run 返回 ExitCode=0, Stdout="", Err=nil
 }
 
@@ -46,6 +48,7 @@ func (f *FakeClient) Run(ctx context.Context, cwd string, args ...string) (*Resu
 	// 默认成功
 	return &Result{
 		Args:     argsCopy,
+		Stdout:   f.StdoutResponse,
 		ExitCode: 0,
 	}, nil
 }
