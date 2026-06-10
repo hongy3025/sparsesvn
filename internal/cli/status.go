@@ -35,6 +35,7 @@ func newStatusCmd(gf *GlobalFlags) *cobra.Command {
 				flags,
 				svn.NewExecClient(),
 				cmd.OutOrStdout(),
+				cmd.ErrOrStderr(),
 			)
 			if code != 0 {
 				return &exitError{Code: code, Err: fmt.Errorf("status exited with code %d", code)}
@@ -49,7 +50,13 @@ func newStatusCmd(gf *GlobalFlags) *cobra.Command {
 	return cmd
 }
 
-func runStatus(ctx context.Context, gf *GlobalFlags, flags StatusFlags, client svn.Client, out io.Writer) int {
+func runStatus(ctx context.Context, gf *GlobalFlags, flags StatusFlags, client svn.Client, out io.Writer, errOut io.Writer) int {
+	// 显示上下文信息（除非 quiet 模式）
+	if !gf.Quiet {
+		displayContext(errOut, gf.Workdir, gf.ResolvedURL, gf.ConfigFile)
+		fmt.Fprintln(errOut) // 空行分隔
+	}
+
 	opts := executor.Options{
 		ConfigPath:  gf.ConfigFile,
 		Workdir:     gf.Workdir,

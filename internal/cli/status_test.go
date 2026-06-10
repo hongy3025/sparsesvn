@@ -41,11 +41,12 @@ func TestStatus_InSync(t *testing.T) {
 
 	fake := &svn.FakeClient{}
 	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
 
 	gf := &GlobalFlags{ConfigFile: cfgPath, Workdir: dir}
 	flags := StatusFlags{}
 
-	code := runStatus(t.Context(), gf, flags, fake, out)
+	code := runStatus(t.Context(), gf, flags, fake, out, errOut)
 	if code != 0 {
 		t.Fatalf("exit code = %d, want 0", code)
 	}
@@ -77,11 +78,12 @@ func TestStatus_HasDiff(t *testing.T) {
 
 	fake := &svn.FakeClient{}
 	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
 
 	gf := &GlobalFlags{ConfigFile: cfgPath, Workdir: dir}
 	flags := StatusFlags{}
 
-	code := runStatus(t.Context(), gf, flags, fake, out)
+	code := runStatus(t.Context(), gf, flags, fake, out, errOut)
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1", code)
 	}
@@ -118,11 +120,12 @@ func TestStatus_JSON_InSync(t *testing.T) {
 
 	fake := &svn.FakeClient{}
 	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
 
 	gf := &GlobalFlags{ConfigFile: cfgPath, Workdir: dir, JSON: true}
 	flags := StatusFlags{}
 
-	code := runStatus(t.Context(), gf, flags, fake, out)
+	code := runStatus(t.Context(), gf, flags, fake, out, errOut)
 	if code != 0 {
 		t.Fatalf("exit code = %d, want 0", code)
 	}
@@ -163,11 +166,12 @@ func TestStatus_URLMismatch(t *testing.T) {
 
 	fake := &svn.FakeClient{}
 	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
 
 	gf := &GlobalFlags{ConfigFile: cfgPath, Workdir: dir}
 	flags := StatusFlags{}
 
-	code := runStatus(t.Context(), gf, flags, fake, out)
+	code := runStatus(t.Context(), gf, flags, fake, out, errOut)
 	if code != 2 {
 		t.Errorf("exit code = %d, want 2", code)
 	}
