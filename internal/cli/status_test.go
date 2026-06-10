@@ -38,7 +38,7 @@ func TestStatus_InSync(t *testing.T) {
 		t.Fatalf("save state: %v", err)
 	}
 
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)
@@ -75,7 +75,7 @@ func TestStatus_HasDiff(t *testing.T) {
 		t.Fatalf("save state: %v", err)
 	}
 
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)
@@ -124,7 +124,7 @@ func TestStatus_JSON_InSync(t *testing.T) {
 		t.Fatalf("save state: %v", err)
 	}
 
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)
@@ -170,7 +170,7 @@ func TestStatus_URLMismatch(t *testing.T) {
 		t.Fatalf("save state: %v", err)
 	}
 
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)

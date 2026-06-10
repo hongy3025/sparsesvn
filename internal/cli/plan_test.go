@@ -20,7 +20,7 @@ func TestPlan_TextOutput(t *testing.T) {
 		t.Fatalf("write yaml: %v", err)
 	}
 
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)
@@ -47,7 +47,7 @@ func TestPlan_JSONOutput(t *testing.T) {
 		t.Fatalf("write yaml: %v", err)
 	}
 
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)
@@ -78,7 +78,7 @@ func TestPlan_InvalidConfig(t *testing.T) {
 		t.Fatalf("write yaml: %v", err)
 	}
 
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)

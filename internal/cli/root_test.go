@@ -8,7 +8,7 @@ import (
 )
 
 func TestExecute_NoArgs(t *testing.T) {
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
@@ -18,7 +18,7 @@ func TestExecute_NoArgs(t *testing.T) {
 }
 
 func TestExecute_UnknownCommand(t *testing.T) {
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
@@ -32,7 +32,7 @@ func TestExecute_UnknownCommand(t *testing.T) {
 
 func TestGlobalFlags_Defaults(t *testing.T) {
 	flags := GlobalFlags{}
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	cmd.RunE = func(c *cobra.Command, args []string) error {
 		flags.ConfigFile = c.Flag("file").Value.String()
 		flags.Workdir = c.Flag("workdir").Value.String()
@@ -80,7 +80,7 @@ func TestVerboseFlag_Counts(t *testing.T) {
 	}
 	for _, c := range cases {
 		var got int
-		cmd := newRootCmd()
+		cmd := newRootCmd("test")
 		cmd.RunE = func(cmd *cobra.Command, args []string) error {
 			got = countVerbose(cmd)
 			return nil

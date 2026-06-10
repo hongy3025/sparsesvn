@@ -19,7 +19,7 @@ func TestApply_InvalidConfig(t *testing.T) {
 		t.Fatalf("write yaml: %v", err)
 	}
 
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)
@@ -49,7 +49,7 @@ func TestApply_URLRequired(t *testing.T) {
 		t.Fatalf("write yaml: %v", err)
 	}
 
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)

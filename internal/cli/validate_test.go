@@ -19,7 +19,7 @@ func TestValidate_OKConfig(t *testing.T) {
 		t.Fatalf("write yaml: %v", err)
 	}
 
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)
@@ -45,7 +45,7 @@ func TestValidate_InvalidYAML(t *testing.T) {
 		t.Fatalf("write yaml: %v", err)
 	}
 
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)
@@ -79,7 +79,7 @@ func TestValidate_PathRuleViolation(t *testing.T) {
 		t.Fatalf("write yaml: %v", err)
 	}
 
-	cmd := newRootCmd()
+	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)
