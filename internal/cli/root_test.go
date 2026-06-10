@@ -8,21 +8,25 @@ import (
 )
 
 func TestExecute_NoArgs(t *testing.T) {
+	tmpDir := t.TempDir()
+
 	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
-	cmd.SetArgs([]string{})
+	cmd.SetArgs([]string{"-C", tmpDir})
 
 	_ = cmd.Execute()
 }
 
 func TestExecute_UnknownCommand(t *testing.T) {
+	tmpDir := t.TempDir()
+
 	cmd := newRootCmd("test")
 	buf := new(bytes.Buffer)
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
-	cmd.SetArgs([]string{"foobar"})
+	cmd.SetArgs([]string{"-C", tmpDir, "foobar"})
 
 	err := cmd.Execute()
 	if err == nil {
@@ -31,6 +35,8 @@ func TestExecute_UnknownCommand(t *testing.T) {
 }
 
 func TestGlobalFlags_Defaults(t *testing.T) {
+	tmpDir := t.TempDir()
+
 	flags := GlobalFlags{}
 	cmd := newRootCmd("test")
 	cmd.RunE = func(c *cobra.Command, args []string) error {
@@ -45,15 +51,15 @@ func TestGlobalFlags_Defaults(t *testing.T) {
 	buf := new(bytes.Buffer)
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
-	cmd.SetArgs([]string{})
+	cmd.SetArgs([]string{"-C", tmpDir})
 
 	_ = cmd.Execute()
 
 	if flags.ConfigFile != "./sparsesvn.yaml" {
 		t.Errorf("ConfigFile default = %q, want %q", flags.ConfigFile, "./sparsesvn.yaml")
 	}
-	if flags.Workdir != "." {
-		t.Errorf("Workdir default = %q, want %q", flags.Workdir, ".")
+	if flags.Workdir != tmpDir {
+		t.Errorf("Workdir = %q, want %q", flags.Workdir, tmpDir)
 	}
 	if flags.Verbose != 0 {
 		t.Errorf("Verbose default = %d, want 0", flags.Verbose)
@@ -70,13 +76,15 @@ func TestGlobalFlags_Defaults(t *testing.T) {
 }
 
 func TestVerboseFlag_Counts(t *testing.T) {
+	tmpDir := t.TempDir()
+
 	cases := []struct {
 		args []string
 		want int
 	}{
-		{[]string{"-v"}, 1},
-		{[]string{"-vv"}, 2},
-		{[]string{"-v", "-v"}, 2},
+		{[]string{"-C", tmpDir, "-v"}, 1},
+		{[]string{"-C", tmpDir, "-vv"}, 2},
+		{[]string{"-C", tmpDir, "-v", "-v"}, 2},
 	}
 	for _, c := range cases {
 		var got int

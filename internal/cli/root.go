@@ -41,13 +41,24 @@ func newRootCmd(version string) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:    cobra.NoArgs,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			gf.ConfigFile, _ = cmd.Flags().GetString("file")
 			gf.Workdir, _ = cmd.Flags().GetString("workdir")
 			gf.Verbose = countVerbose(cmd)
 			gf.Quiet, _ = cmd.Flags().GetBool("quiet")
 			gf.JSON, _ = cmd.Flags().GetBool("json")
 			gf.NoColor, _ = cmd.Flags().GetBool("no-color")
+
+			// 检测 -C 是否为显式指定
+			gf.WorkdirExplicit = cmd.Flags().Changed("workdir")
+
+			// 执行智能检测（validate 子命令跳过，因为它不需要 workdir）
+			if cmd.Name() != "validate" && cmd.Parent() != nil {
+				if err := validateAndDisplayContext(gf, cmd.ErrOrStderr()); err != nil {
+					return &exitError{Code: 2, Err: err}
+				}
+			}
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()

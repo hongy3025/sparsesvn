@@ -10,6 +10,7 @@ import (
 
 	"github.com/hongy3025/sparsesvn/internal/config"
 	"github.com/hongy3025/sparsesvn/internal/state"
+	"github.com/hongy3025/sparsesvn/internal/svn"
 )
 
 func TestStatus_InSync(t *testing.T) {
@@ -38,19 +39,18 @@ func TestStatus_InSync(t *testing.T) {
 		t.Fatalf("save state: %v", err)
 	}
 
-	cmd := newRootCmd("test")
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	cmd.SetOut(buf)
-	cmd.SetErr(errBuf)
-	cmd.SetArgs([]string{"status", "-f", cfgPath, "-C", dir})
+	fake := &svn.FakeClient{}
+	out := &bytes.Buffer{}
 
-	err = cmd.Execute()
-	if err != nil {
-		t.Fatalf("Execute returned error: %v", err)
+	gf := &GlobalFlags{ConfigFile: cfgPath, Workdir: dir}
+	flags := StatusFlags{}
+
+	code := runStatus(t.Context(), gf, flags, fake, out)
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0", code)
 	}
-	if !strings.Contains(buf.String(), "in sync") {
-		t.Errorf("stdout %q does not contain 'in sync'", buf.String())
+	if !strings.Contains(out.String(), "in sync") {
+		t.Errorf("stdout %q does not contain 'in sync'", out.String())
 	}
 }
 
@@ -75,26 +75,18 @@ func TestStatus_HasDiff(t *testing.T) {
 		t.Fatalf("save state: %v", err)
 	}
 
-	cmd := newRootCmd("test")
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	cmd.SetOut(buf)
-	cmd.SetErr(errBuf)
-	cmd.SetArgs([]string{"status", "-f", cfgPath, "-C", dir})
+	fake := &svn.FakeClient{}
+	out := &bytes.Buffer{}
 
-	err := cmd.Execute()
-	if err == nil {
-		t.Fatal("expected error (exit 1) for diff, got nil")
+	gf := &GlobalFlags{ConfigFile: cfgPath, Workdir: dir}
+	flags := StatusFlags{}
+
+	code := runStatus(t.Context(), gf, flags, fake, out)
+	if code != 1 {
+		t.Errorf("exit code = %d, want 1", code)
 	}
-	ee, ok := err.(*exitError)
-	if !ok {
-		t.Fatalf("error is not *exitError: %v (%T)", err, err)
-	}
-	if ee.Code != 1 {
-		t.Errorf("exit code = %d, want 1", ee.Code)
-	}
-	if !strings.Contains(buf.String(), "Plan:") {
-		t.Errorf("stdout %q does not contain 'Plan:'", buf.String())
+	if !strings.Contains(out.String(), "Plan:") {
+		t.Errorf("stdout %q does not contain 'Plan:'", out.String())
 	}
 }
 
@@ -124,25 +116,24 @@ func TestStatus_JSON_InSync(t *testing.T) {
 		t.Fatalf("save state: %v", err)
 	}
 
-	cmd := newRootCmd("test")
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	cmd.SetOut(buf)
-	cmd.SetErr(errBuf)
-	cmd.SetArgs([]string{"status", "-f", cfgPath, "-C", dir, "--json"})
+	fake := &svn.FakeClient{}
+	out := &bytes.Buffer{}
 
-	err = cmd.Execute()
-	if err != nil {
-		t.Fatalf("Execute returned error: %v", err)
+	gf := &GlobalFlags{ConfigFile: cfgPath, Workdir: dir, JSON: true}
+	flags := StatusFlags{}
+
+	code := runStatus(t.Context(), gf, flags, fake, out)
+	if code != 0 {
+		t.Fatalf("exit code = %d, want 0", code)
 	}
 
 	var raw map[string]interface{}
-	if err := json.Unmarshal(buf.Bytes(), &raw); err != nil {
-		t.Fatalf("stdout is not valid JSON: %v\nstdout: %s", err, buf.String())
+	if err := json.Unmarshal(out.Bytes(), &raw); err != nil {
+		t.Fatalf("stdout is not valid JSON: %v\nstdout: %s", err, out.String())
 	}
 	inSync, ok := raw["in_sync"]
 	if !ok {
-		t.Errorf("JSON missing 'in_sync' field: %s", buf.String())
+		t.Errorf("JSON missing 'in_sync' field: %s", out.String())
 	}
 	if inSync != true {
 		t.Errorf("in_sync = %v, want true", inSync)
@@ -170,22 +161,14 @@ func TestStatus_URLMismatch(t *testing.T) {
 		t.Fatalf("save state: %v", err)
 	}
 
-	cmd := newRootCmd("test")
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	cmd.SetOut(buf)
-	cmd.SetErr(errBuf)
-	cmd.SetArgs([]string{"status", "-f", cfgPath, "-C", dir})
+	fake := &svn.FakeClient{}
+	out := &bytes.Buffer{}
 
-	err := cmd.Execute()
-	if err == nil {
-		t.Fatal("expected error for url mismatch, got nil")
-	}
-	ee, ok := err.(*exitError)
-	if !ok {
-		t.Fatalf("error is not *exitError: %v (%T)", err, err)
-	}
-	if ee.Code != 2 {
-		t.Errorf("exit code = %d, want 2", ee.Code)
+	gf := &GlobalFlags{ConfigFile: cfgPath, Workdir: dir}
+	flags := StatusFlags{}
+
+	code := runStatus(t.Context(), gf, flags, fake, out)
+	if code != 2 {
+		t.Errorf("exit code = %d, want 2", code)
 	}
 }

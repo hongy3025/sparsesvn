@@ -25,7 +25,7 @@ func TestPlan_TextOutput(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)
 	cmd.SetErr(errBuf)
-	cmd.SetArgs([]string{"plan", "-f", cfgPath})
+	cmd.SetArgs([]string{"plan", "-f", cfgPath, "-C", dir})
 
 	err := cmd.Execute()
 	if err != nil {
@@ -52,7 +52,7 @@ func TestPlan_JSONOutput(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)
 	cmd.SetErr(errBuf)
-	cmd.SetArgs([]string{"plan", "-f", cfgPath, "--json"})
+	cmd.SetArgs([]string{"plan", "-f", cfgPath, "-C", dir, "--json"})
 
 	err := cmd.Execute()
 	if err != nil {
@@ -83,7 +83,7 @@ func TestPlan_InvalidConfig(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	cmd.SetOut(buf)
 	cmd.SetErr(errBuf)
-	cmd.SetArgs([]string{"plan", "-f", cfgPath})
+	cmd.SetArgs([]string{"plan", "-f", cfgPath, "-C", dir})
 
 	err := cmd.Execute()
 	if err == nil {
