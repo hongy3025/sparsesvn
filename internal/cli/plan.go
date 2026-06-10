@@ -18,6 +18,12 @@ func newPlanCmd(gf *GlobalFlags) *cobra.Command {
 		Short: "Show planned actions (dry-run diff)",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// 显示上下文信息（除非 quiet 模式）
+			if !gf.Quiet {
+				displayContext(cmd.ErrOrStderr(), gf.Workdir, gf.ResolvedURL, gf.ConfigFile)
+				fmt.Fprintln(cmd.ErrOrStderr()) // 空行分隔
+			}
+
 			opts := executor.Options{
 				ConfigPath:  gf.ConfigFile,
 				Workdir:     gf.Workdir,
