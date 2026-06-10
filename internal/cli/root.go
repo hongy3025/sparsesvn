@@ -26,6 +26,7 @@ func (e *exitError) Error() string { return e.Err.Error() }
 
 func newRootCmd() *cobra.Command {
 	var verbose int
+	gf := &GlobalFlags{}
 
 	cmd := &cobra.Command{
 		Use:     "sparsesvn",
@@ -34,6 +35,14 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:    cobra.NoArgs,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			gf.ConfigFile, _ = cmd.Flags().GetString("file")
+			gf.Workdir, _ = cmd.Flags().GetString("workdir")
+			gf.Verbose = countVerbose(cmd)
+			gf.Quiet, _ = cmd.Flags().GetBool("quiet")
+			gf.JSON, _ = cmd.Flags().GetBool("json")
+			gf.NoColor, _ = cmd.Flags().GetBool("no-color")
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},
@@ -45,6 +54,8 @@ func newRootCmd() *cobra.Command {
 	cmd.PersistentFlags().BoolP("quiet", "q", false, "suppress output")
 	cmd.PersistentFlags().Bool("json", false, "output in JSON format")
 	cmd.PersistentFlags().Bool("no-color", false, "disable colored output")
+
+	cmd.AddCommand(newValidateCmd(gf))
 
 	return cmd
 }
