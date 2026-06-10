@@ -1,8 +1,14 @@
 package cli
 
 import (
+	"context"
+	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 
+	"github.com/hongy3025/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/svn"
 	"github.com/spf13/cobra"
 )
 
@@ -66,6 +72,68 @@ func newRootCmd(version string) *cobra.Command {
 func countVerbose(cmd *cobra.Command) int {
 	n, _ := cmd.Flags().GetCount("verbose")
 	return n
+}
+
+// validateAndDisplayContext 验证工作目录并显示上下文信息
+func validateAndDisplayContext(gf *GlobalFlags, out io.Writer) error {
+	workdir := gf.Workdir
+
+	// Step 1: 检查 workdir 是否存在
+	if _, err := os.Stat(workdir); os.IsNotExist(err) {
+		// 目录不存在，可能是首次 checkout，允许继续
+		return nil
+	}
+
+	// Step 2: 检查 .svn 是否存在
+	svnDir := filepath.Join(workdir, ".svn")
+	isWC := false
+	if info, err := os.Stat(svnDir); err == nil && info.IsDir() {
+		isWC = true
+	}
+
+	if !isWC {
+		// 不是工作副本
+		if !gf.WorkdirExplicit {
+			// 使用默认 -C 且无 .svn → 报错
+			return fmt.Errorf("current directory is not an SVN working copy. Use -C to specify working directory")
+		}
+		// 显式指定 -C 且无 .svn → 允许（首次 checkout）
+		return nil
+	}
+
+	// Step 3: .svn 存在，加载配置获取 URL
+	cfg, err := config.Load(gf.ConfigFile)
+	if err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
+	finalURL := cfg.URL
+	if finalURL == "" {
+		return fmt.Errorf("URL required: provide in config or --url flag")
+	}
+
+	// Step 4: 获取工作副本真实 URL
+	wcURL, err := svn.GetWorkingCopyURL(context.Background(), svn.NewExecClient(), workdir)
+	if err != nil {
+		return fmt.Errorf("failed to get working copy URL: %w", err)
+	}
+
+	// Step 5: 比较 URL
+	if wcURL != finalURL {
+		return fmt.Errorf("URL mismatch. Working copy has %q, config specifies %q. Use \"svn switch\" to change the working copy URL, or update your config", wcURL, finalURL)
+	}
+
+	// Step 6: 存储解析后的 URL
+	gf.ResolvedURL = finalURL
+
+	return nil
+}
+
+// displayContext 显示上下文信息
+func displayContext(out io.Writer, workdir, url, configFile string) {
+	fmt.Fprintf(out, "Working directory: %s\n", workdir)
+	fmt.Fprintf(out, "Repository URL:    %s\n", url)
+	fmt.Fprintf(out, "Config file:       %s\n", configFile)
 }
 
 func Execute(version string) int {
