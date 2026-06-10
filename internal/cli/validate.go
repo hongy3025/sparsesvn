@@ -15,6 +15,7 @@ func newValidateCmd(gf *GlobalFlags) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := gf.ConfigFile
 			if _, err := config.Load(path); err != nil {
+				fmt.Fprintln(cmd.ErrOrStderr(), err)
 				return &exitError{Code: 2, Err: err}
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "OK: %s is valid\n", path)
