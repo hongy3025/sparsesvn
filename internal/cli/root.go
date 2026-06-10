@@ -56,6 +56,8 @@ func newRootCmd() *cobra.Command {
 	cmd.PersistentFlags().Bool("no-color", false, "disable colored output")
 
 	cmd.AddCommand(newValidateCmd(gf))
+	cmd.AddCommand(newPlanCmd(gf))
+	cmd.AddCommand(newStatusCmd(gf))
 
 	return cmd
 }
