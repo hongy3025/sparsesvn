@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/sparsesvn/sparsesvn/internal/config"
-	"github.com/sparsesvn/sparsesvn/internal/plan"
+	"github.com/hongy3025/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/plan"
 )
 
 func TestFormatPlan_Empty(t *testing.T) {

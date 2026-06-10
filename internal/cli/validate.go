@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/sparsesvn/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/config"
 	"github.com/spf13/cobra"
 )
 

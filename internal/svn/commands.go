@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sparsesvn/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/config"
 )
 
 func Checkout(ctx context.Context, c Client, workdir, url string, revision string) error {

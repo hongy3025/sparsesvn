@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/sparsesvn/sparsesvn/internal/executor"
+	"github.com/hongy3025/sparsesvn/internal/executor"
 	"github.com/spf13/cobra"
 )
 

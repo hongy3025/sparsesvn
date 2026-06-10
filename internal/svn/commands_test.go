@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/sparsesvn/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/config"
 )
 
 func TestCheckout_BuildsArgs(t *testing.T) {

@@ -1,4 +1,4 @@
-module github.com/sparsesvn/sparsesvn
+module github.com/hongy3025/sparsesvn
 
 go 1.26.4
 

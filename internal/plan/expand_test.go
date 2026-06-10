@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sparsesvn/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/config"
 )
 
 func TestExpand_SinglePathInfinity(t *testing.T) {

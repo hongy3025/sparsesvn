@@ -5,7 +5,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/sparsesvn/sparsesvn/internal/plan"
+	"github.com/hongy3025/sparsesvn/internal/plan"
 )
 
 func kindMarker(k plan.ActionKind) string {

@@ -1,7 +1,7 @@
 package plan
 
 import (
-	"github.com/sparsesvn/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/config"
 )
 
 func Diff(desired, current map[string]config.Depth) []Action {

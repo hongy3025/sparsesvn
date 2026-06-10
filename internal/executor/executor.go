@@ -6,11 +6,11 @@ import (
 	"sort"
 	"time"
 
-	"github.com/sparsesvn/sparsesvn/internal/config"
-	"github.com/sparsesvn/sparsesvn/internal/logx"
-	"github.com/sparsesvn/sparsesvn/internal/plan"
-	"github.com/sparsesvn/sparsesvn/internal/state"
-	"github.com/sparsesvn/sparsesvn/internal/svn"
+	"github.com/hongy3025/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/logx"
+	"github.com/hongy3025/sparsesvn/internal/plan"
+	"github.com/hongy3025/sparsesvn/internal/state"
+	"github.com/hongy3025/sparsesvn/internal/svn"
 )
 
 type Options struct {

@@ -3,7 +3,7 @@ package plan
 import (
 	"strings"
 
-	"github.com/sparsesvn/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/config"
 )
 
 func Expand(cfg *config.Config) map[string]config.Depth {

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sparsesvn/sparsesvn/internal/config"
-	"github.com/sparsesvn/sparsesvn/internal/state"
+	"github.com/hongy3025/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/state"
 )
 
 func TestStatus_InSync(t *testing.T) {

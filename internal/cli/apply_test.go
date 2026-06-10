@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sparsesvn/sparsesvn/internal/config"
-	"github.com/sparsesvn/sparsesvn/internal/state"
-	"github.com/sparsesvn/sparsesvn/internal/svn"
+	"github.com/hongy3025/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/state"
+	"github.com/hongy3025/sparsesvn/internal/svn"
 )
 
 func TestApply_InvalidConfig(t *testing.T) {

@@ -7,9 +7,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/sparsesvn/sparsesvn/internal/executor"
-	"github.com/sparsesvn/sparsesvn/internal/logx"
-	"github.com/sparsesvn/sparsesvn/internal/svn"
+	"github.com/hongy3025/sparsesvn/internal/executor"
+	"github.com/hongy3025/sparsesvn/internal/logx"
+	"github.com/hongy3025/sparsesvn/internal/svn"
 	"github.com/spf13/cobra"
 )
 

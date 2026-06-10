@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/sparsesvn/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/config"
 )
 
 func TestSort_AddsBeforeExcludes(t *testing.T) {

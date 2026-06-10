@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sparsesvn/sparsesvn/internal/config"
+	"github.com/hongy3025/sparsesvn/internal/config"
 )
 
 func TestSaveLoad_RoundTrip(t *testing.T) {

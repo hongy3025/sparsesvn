@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/sparsesvn/sparsesvn/internal/cli"
+	"github.com/hongy3025/sparsesvn/internal/cli"
 )
 
 var version = "dev"

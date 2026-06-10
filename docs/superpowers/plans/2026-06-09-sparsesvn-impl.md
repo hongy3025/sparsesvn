@@ -56,7 +56,7 @@
 
 **文件：** `go.mod`、`.gitignore`、`Makefile`
 
-- [ ] **步骤 1：初始化模块** `go mod init github.com/sparsesvn/sparsesvn`
+- [ ] **步骤 1：初始化模块** `go mod init github.com/hongy3025/sparsesvn`
 
 - [ ] **步骤 2：写 `.gitignore`**
 
@@ -691,7 +691,7 @@ func Compute(opts Options) (*Result, error)
 - `TestApply_URLRequired`：config 无 url，opts.URLOverride 也空 -> err
 - `TestApply_AddNewPath`：state 中有 src（empty），config 新增 docs（empty）-> 只执行 1 条 svn 命令
 - `TestApply_DowngradeAndExclude`：综合场景验证顺序（先 add/upgrade 后 downgrade/exclude）
-- `TestApply_FailureWritesHalfState`：FakeClient 配置第 3 条失败 -> 前 2 条的状态写入 state 文件，ConfigHash="" 
+- `TestApply_FailureWritesHalfState`：FakeClient 配置第 3 条失败 -> 前 2 条的状态写入 state 文件，ConfigHash=""
 - `TestApply_DryRun`：Result 含 Plan，但 fake.Calls 长度为 0，state 文件未写
 - `TestApply_RevisionForcesUpdate`：state 完全匹配 + opts.Revision="100" -> 跳过快速路径，actions 为空时执行一次 UpdateRoot
 
@@ -746,7 +746,7 @@ package main
 
 import (
     "os"
-    "github.com/sparsesvn/sparsesvn/internal/cli"
+    "github.com/hongy3025/sparsesvn/internal/cli"
 )
 
 func main() {
@@ -1061,7 +1061,7 @@ func TestE2E_FreshApply(t *testing.T) {
     RequireSvnBinary(t)
     repo := CreateTestRepo(t)
     workdir := t.TempDir()
-    
+
     yaml := fmt.Sprintf(`url: %s/trunk
 paths:
   - path: src/core
@@ -1071,12 +1071,12 @@ paths:
 `, repo.URL)
     cfgPath := filepath.Join(workdir, "sparsesvn.yaml")
     os.WriteFile(cfgPath, []byte(yaml), 0644)
-    
+
     stdout, stderr, code := RunCLI(t, []string{"apply", "-f", cfgPath, "-C", workdir}, "")
     if code != 0 {
         t.Fatalf("apply exit=%d stderr=%s", code, stderr)
     }
-    
+
     // 验证：src/core/main.c 实际存在（infinity 拉下来了）
     assertFileExists(t, filepath.Join(workdir, "src/core/main.c"))
     // docs/readme.md 存在（files 拉了直属文件）
@@ -1165,7 +1165,7 @@ func TestE2E_FastPath(t *testing.T) {
 
 1. **项目简介**：一段话定位 + 类比 terraform apply
 2. **安装**：
-   - `go install github.com/sparsesvn/sparsesvn/cmd/sparsesvn@latest`
+   - `go install github.com/hongy3025/sparsesvn/cmd/sparsesvn@latest`
    - 或从 releases 下载预编译二进制
    - 前置条件：`svn` 命令在 PATH 中（>= 1.6 支持 set-depth exclude）
 3. **快速开始**：
