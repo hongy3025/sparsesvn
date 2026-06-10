@@ -2,9 +2,9 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/sparsesvn/sparsesvn/internal/executor"
@@ -88,8 +88,9 @@ func runApply(ctx context.Context, gf *GlobalFlags, applyFlags ApplyFlags, clien
 			fmt.Fprintln(errOut, result.Err)
 			return 3
 		}
-		errMsg := result.Err.Error()
-		if strings.Contains(errMsg, "url mismatch") || strings.Contains(errMsg, "url required") || strings.Contains(errMsg, "load config") {
+		if errors.Is(result.Err, executor.ErrURLMismatch) ||
+			errors.Is(result.Err, executor.ErrURLRequired) ||
+			errors.Is(result.Err, executor.ErrConfigInvalid) {
 			fmt.Fprintln(errOut, result.Err)
 			return 2
 		}

@@ -40,7 +40,7 @@ func Apply(ctx context.Context, opts Options) *Result {
 	// Step 1: load config
 	cfg, err := config.Load(opts.ConfigPath)
 	if err != nil {
-		r.Err = fmt.Errorf("load config: %w", err)
+		r.Err = fmt.Errorf("%w: %w", ErrConfigInvalid, err)
 		return r
 	}
 
@@ -50,7 +50,7 @@ func Apply(ctx context.Context, opts Options) *Result {
 		finalURL = opts.URLOverride
 	}
 	if finalURL == "" {
-		r.Err = fmt.Errorf("url required: config has no url and no --url override")
+		r.Err = fmt.Errorf("%w", ErrURLRequired)
 		return r
 	}
 
@@ -63,7 +63,7 @@ func Apply(ctx context.Context, opts Options) *Result {
 
 	// Step 4: url mismatch check
 	if exists && st.URL != finalURL {
-		r.Err = fmt.Errorf("url mismatch: state has %q, config/override has %q", st.URL, finalURL)
+		r.Err = fmt.Errorf("%w: state has %q, config/override has %q", ErrURLMismatch, st.URL, finalURL)
 		return r
 	}
 
@@ -139,7 +139,7 @@ func Apply(ctx context.Context, opts Options) *Result {
 		}
 		if execErr != nil {
 			r.FailedAction = a
-			r.Err = fmt.Errorf("action %s %s: %w", a.Kind, a.Path, execErr)
+			r.Err = fmt.Errorf("%w: action %s %s: %w", ErrSvnFailed, a.Kind, a.Path, execErr)
 			r.ExecutedCount = executedCount
 			// Write half-state
 			halfState := buildState("", finalURL, current)
