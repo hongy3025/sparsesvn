@@ -63,13 +63,17 @@ func FormatPlan(actions []plan.Action) string {
 	for _, a := range actions {
 		marker := kindMarker(a.Kind)
 		label := kindLabel(a.Kind)
+		displayPath := a.Path
+		if a.External != nil {
+			displayPath = a.External.ParentPath + "/" + a.External.Target
+		}
 		switch a.Kind {
 		case plan.ActionAdd:
-			fmt.Fprintf(tw, "%s %s\t%s\t-> %s\n", marker, label, a.Path, a.ToDepth)
+			fmt.Fprintf(tw, "%s %s\t%s\t-> %s\n", marker, label, displayPath, a.ToDepth)
 		case plan.ActionUpgrade, plan.ActionDowngrade:
-			fmt.Fprintf(tw, "%s %s\t%s\t%s -> %s\n", marker, label, a.Path, a.FromDepth, a.ToDepth)
+			fmt.Fprintf(tw, "%s %s\t%s\t%s -> %s\n", marker, label, displayPath, a.FromDepth, a.ToDepth)
 		case plan.ActionExclude:
-			fmt.Fprintf(tw, "%s %s\t%s\t%s\n", marker, label, a.Path, a.FromDepth)
+			fmt.Fprintf(tw, "%s %s\t%s\t%s\n", marker, label, displayPath, a.FromDepth)
 		}
 	}
 	tw.Flush()
@@ -86,6 +90,7 @@ type PlanJSON struct {
 type ActionJSON struct {
 	Kind      string `json:"kind"`
 	Path      string `json:"path"`
+	Target    string `json:"target,omitempty"`
 	FromDepth string `json:"from_depth,omitempty"`
 	ToDepth   string `json:"to_depth,omitempty"`
 }
@@ -109,6 +114,10 @@ func BuildPlanJSON(url string, actions []plan.Action) PlanJSON {
 		aj := ActionJSON{
 			Kind: kindLabel(a.Kind),
 			Path: a.Path,
+		}
+		if a.External != nil {
+			aj.Target = a.External.Target
+			aj.Path = a.External.ParentPath + "/" + a.External.Target
 		}
 		switch a.Kind {
 		case plan.ActionAdd:
