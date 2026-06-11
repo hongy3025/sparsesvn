@@ -13,15 +13,21 @@ import (
 	"github.com/hongy3025/sparsesvn/internal/config"
 )
 
-const StateVersion = 1
+const StateVersion = 2
 
 const StateFileRelPath = ".svn/sparsesvn.state.yaml"
 
 const stateFileHeader = "# sparsesvn state file - DO NOT EDIT MANUALLY\n"
 
+type ExternalEntry struct {
+	Target string
+	Depth  config.Depth
+}
+
 type PathEntry struct {
-	Path  string
-	Depth config.Depth
+	Path      string
+	Depth     config.Depth
+	Externals []ExternalEntry
 }
 
 type State struct {
@@ -36,9 +42,15 @@ func Path(workdir string) string {
 	return filepath.Join(workdir, StateFileRelPath)
 }
 
+type rawExternalEntry struct {
+	Target string `yaml:"target"`
+	Depth  string `yaml:"depth"`
+}
+
 type rawPathEntry struct {
-	Path  string `yaml:"path"`
-	Depth string `yaml:"depth"`
+	Path      string             `yaml:"path"`
+	Depth     string             `yaml:"depth"`
+	Externals []rawExternalEntry `yaml:"externals"`
 }
 
 type rawState struct {
@@ -67,7 +79,11 @@ func Save(workdir string, s *State) error {
 		Paths:      make([]rawPathEntry, len(sorted)),
 	}
 	for i, p := range sorted {
-		raw.Paths[i] = rawPathEntry{Path: p.Path, Depth: p.Depth.String()}
+		rpe := rawPathEntry{Path: p.Path, Depth: p.Depth.String()}
+		for _, e := range p.Externals {
+			rpe.Externals = append(rpe.Externals, rawExternalEntry{Target: e.Target, Depth: e.Depth.String()})
+		}
+		raw.Paths[i] = rpe
 	}
 
 	body, err := yaml.Marshal(&raw)
@@ -113,7 +129,15 @@ func Load(workdir string) (*State, bool, error) {
 		if err != nil {
 			return nil, false, fmt.Errorf("parse state %s: paths[%d]: %w (consider deleting the state file to trigger full rebuild)", path, i, err)
 		}
-		s.Paths = append(s.Paths, PathEntry{Path: rp.Path, Depth: d})
+		pe := PathEntry{Path: rp.Path, Depth: d}
+		for j, re := range rp.Externals {
+			ed, err := config.ParseDepth(re.Depth)
+			if err != nil {
+				return nil, false, fmt.Errorf("parse state %s: paths[%d].externals[%d]: %w (consider deleting the state file to trigger full rebuild)", path, i, j, err)
+			}
+			pe.Externals = append(pe.Externals, ExternalEntry{Target: re.Target, Depth: ed})
+		}
+		s.Paths = append(s.Paths, pe)
 	}
 	return s, true, nil
 }

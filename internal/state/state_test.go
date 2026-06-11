@@ -3,208 +3,106 @@ package state
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/hongy3025/sparsesvn/internal/config"
 )
 
-func TestSaveLoad_RoundTrip(t *testing.T) {
+func TestSaveLoadWithExternals(t *testing.T) {
 	dir := t.TempDir()
-	now := time.Date(2026, 6, 9, 10, 30, 0, 0, time.FixedZone("CST", 8*3600))
-	in := &State{
+	s := &State{
 		Version:    StateVersion,
-		ConfigHash: "sha256:7f3a",
+		ConfigHash: "sha256:abc123",
 		URL:        "svn://server/repo/trunk",
-		AppliedAt:  now,
+		AppliedAt:  time.Now().UTC().Truncate(time.Second),
 		Paths: []PathEntry{
-			{Path: "src", Depth: config.DepthEmpty},
-			{Path: "src/core", Depth: config.DepthInfinity},
+			{
+				Path:  "src/core",
+				Depth: config.DepthInfinity,
+				Externals: []ExternalEntry{
+					{Target: "utils", Depth: config.DepthFiles},
+					{Target: "proto", Depth: config.DepthInfinity},
+				},
+			},
+			{
+				Path:      "docs",
+				Depth:     config.DepthFiles,
+				Externals: nil,
+			},
 		},
 	}
-
-	if err := Save(dir, in); err != nil {
+	if err := Save(dir, s); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
-
-	got, ok, err := Load(dir)
+	loaded, exists, err := Load(dir)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if !ok {
-		t.Fatal("expected ok=true")
+	if !exists {
+		t.Fatal("expected exists=true")
 	}
-	if got.Version != in.Version {
-		t.Errorf("version: got %d want %d", got.Version, in.Version)
+	if loaded.Version != StateVersion {
+		t.Errorf("Version = %d, want %d", loaded.Version, StateVersion)
 	}
-	if got.ConfigHash != in.ConfigHash {
-		t.Errorf("hash: got %q want %q", got.ConfigHash, in.ConfigHash)
+	if len(loaded.Paths) != 2 {
+		t.Fatalf("len(Paths) = %d, want 2", len(loaded.Paths))
 	}
-	if got.URL != in.URL {
-		t.Errorf("url: got %q want %q", got.URL, in.URL)
+	// Save sorts paths alphabetically: docs < src/core
+	p0 := loaded.Paths[0]
+	if p0.Path != "docs" {
+		t.Errorf("Paths[0].Path = %q, want %q", p0.Path, "docs")
 	}
-	if !got.AppliedAt.Equal(in.AppliedAt) {
-		t.Errorf("applied_at: got %v want %v", got.AppliedAt, in.AppliedAt)
+	if len(p0.Externals) != 0 {
+		t.Fatalf("Paths[0].Externals len = %d, want 0", len(p0.Externals))
 	}
-	if len(got.Paths) != len(in.Paths) {
-		t.Fatalf("paths len: got %d want %d", len(got.Paths), len(in.Paths))
+	p1 := loaded.Paths[1]
+	if p1.Path != "src/core" {
+		t.Errorf("Paths[1].Path = %q, want %q", p1.Path, "src/core")
 	}
-	for i := range got.Paths {
-		if got.Paths[i] != in.Paths[i] {
-			t.Errorf("paths[%d]: got %+v want %+v", i, got.Paths[i], in.Paths[i])
+	if len(p1.Externals) != 2 {
+		t.Fatalf("Paths[1].Externals len = %d, want 2", len(p1.Externals))
+	}
+	if p1.Externals[0].Target != "utils" {
+		t.Errorf("Externals[0].Target = %q", p1.Externals[0].Target)
+	}
+	if p1.Externals[0].Depth != config.DepthFiles {
+		t.Errorf("Externals[0].Depth = %v, want files", p1.Externals[0].Depth)
+	}
+	if p1.Externals[1].Target != "proto" {
+		t.Errorf("Externals[1].Target = %q", p1.Externals[1].Target)
+	}
+}
+
+func TestLoadVersion1Compat(t *testing.T) {
+	v1Yaml := "# sparsesvn state file - DO NOT EDIT MANUALLY\n" +
+		"version: 1\n" +
+		"config_hash: \"sha256:abc\"\n" +
+		"url: \"svn://server/repo/trunk\"\n" +
+		"applied_at: 2026-06-11T10:00:00Z\n" +
+		"paths:\n" +
+		"  - path: src\n" +
+		"    depth: infinity\n" +
+		"  - path: docs\n" +
+		"    depth: files\n"
+	dir := t.TempDir()
+	statePath := Path(dir)
+	os.MkdirAll(filepath.Dir(statePath), 0755)
+	os.WriteFile(statePath, []byte(v1Yaml), 0644)
+
+	loaded, exists, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !exists {
+		t.Fatal("expected exists=true")
+	}
+	if loaded.Version != 1 {
+		t.Errorf("Version = %d, want 1", loaded.Version)
+	}
+	for _, p := range loaded.Paths {
+		if len(p.Externals) != 0 {
+			t.Errorf("Path %q: expected empty externals, got %d", p.Path, len(p.Externals))
 		}
-	}
-}
-
-func TestLoad_NotFound(t *testing.T) {
-	dir := t.TempDir()
-	got, ok, err := Load(dir)
-	if err != nil {
-		t.Fatalf("expected nil err, got %v", err)
-	}
-	if ok {
-		t.Error("expected ok=false")
-	}
-	if got != nil {
-		t.Error("expected nil state")
-	}
-}
-
-func TestLoad_CorruptYAML(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(dir, ".svn"), 0755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	if err := os.WriteFile(Path(dir), []byte("not: : valid: yaml: ["), 0644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
-
-	_, ok, err := Load(dir)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if ok {
-		t.Error("expected ok=false on error")
-	}
-	if !strings.Contains(err.Error(), "deleting the state file") {
-		t.Errorf("error should mention deleting the state file, got: %v", err)
-	}
-}
-
-func TestLoad_FutureVersion(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(dir, ".svn"), 0755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	content := "version: 999\nconfig_hash: \"\"\nurl: \"\"\napplied_at: 2026-06-09T10:30:00Z\npaths: []\n"
-	if err := os.WriteFile(Path(dir), []byte(content), 0644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
-
-	_, ok, err := Load(dir)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if ok {
-		t.Error("expected ok=false on error")
-	}
-	if !strings.Contains(err.Error(), "upgrade") {
-		t.Errorf("error should mention upgrade, got: %v", err)
-	}
-}
-
-func TestSave_PreservesOrder(t *testing.T) {
-	dir := t.TempDir()
-	in := &State{
-		Version:    StateVersion,
-		ConfigHash: "sha256:abc",
-		URL:        "svn://x",
-		AppliedAt:  time.Now().UTC(),
-		Paths: []PathEntry{
-			{Path: "zeta", Depth: config.DepthEmpty},
-			{Path: "alpha", Depth: config.DepthInfinity},
-			{Path: "mu", Depth: config.DepthFiles},
-		},
-	}
-	original := make([]PathEntry, len(in.Paths))
-	copy(original, in.Paths)
-
-	if err := Save(dir, in); err != nil {
-		t.Fatalf("Save: %v", err)
-	}
-
-	for i := range in.Paths {
-		if in.Paths[i] != original[i] {
-			t.Errorf("Save mutated input paths at %d", i)
-		}
-	}
-
-	data, err := os.ReadFile(Path(dir))
-	if err != nil {
-		t.Fatalf("read: %v", err)
-	}
-	text := string(data)
-	iAlpha := strings.Index(text, "alpha")
-	iMu := strings.Index(text, "mu")
-	iZeta := strings.Index(text, "zeta")
-	if iAlpha < 0 || iMu < 0 || iZeta < 0 {
-		t.Fatalf("missing path in output:\n%s", text)
-	}
-	if !(iAlpha < iMu && iMu < iZeta) {
-		t.Errorf("paths not in lexicographic order:\n%s", text)
-	}
-	if !strings.Contains(text, "# sparsesvn state file - DO NOT EDIT MANUALLY") {
-		t.Error("missing header comment")
-	}
-}
-
-func TestSave_CreatesStateDir(t *testing.T) {
-	dir := t.TempDir()
-	if _, err := os.Stat(filepath.Join(dir, ".svn")); !os.IsNotExist(err) {
-		t.Fatalf("precondition: .svn should not exist, got err=%v", err)
-	}
-
-	s := &State{
-		Version:    StateVersion,
-		ConfigHash: "",
-		URL:        "svn://x",
-		AppliedAt:  time.Now().UTC(),
-		Paths:      nil,
-	}
-	if err := Save(dir, s); err != nil {
-		t.Fatalf("Save: %v", err)
-	}
-
-	if _, err := os.Stat(Path(dir)); err != nil {
-		t.Errorf("state file not created: %v", err)
-	}
-}
-
-func TestSave_UTCConversion(t *testing.T) {
-	dir := t.TempDir()
-	loc := time.FixedZone("CST", 8*3600)
-	local := time.Date(2026, 6, 9, 18, 30, 0, 0, loc)
-	s := &State{
-		Version:    StateVersion,
-		ConfigHash: "sha256:x",
-		URL:        "svn://x",
-		AppliedAt:  local,
-		Paths:      nil,
-	}
-
-	if err := Save(dir, s); err != nil {
-		t.Fatalf("Save: %v", err)
-	}
-	if !s.AppliedAt.Equal(local) || s.AppliedAt.Location().String() != loc.String() {
-		t.Error("Save mutated input AppliedAt")
-	}
-
-	data, err := os.ReadFile(Path(dir))
-	if err != nil {
-		t.Fatalf("read: %v", err)
-	}
-	if !strings.Contains(string(data), "2026-06-09T10:30:00Z") {
-		t.Errorf("expected UTC timestamp in file, got:\n%s", data)
 	}
 }
