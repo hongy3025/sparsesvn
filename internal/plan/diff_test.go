@@ -118,6 +118,126 @@ func TestDiff_DepthChanges(t *testing.T) {
 	}
 }
 
+func TestDiffExternalAdd(t *testing.T) {
+	desired := map[string]config.Depth{"src": config.DepthInfinity}
+	current := map[string]config.Depth{}
+	desiredExt := map[string][]ExternalSpec{
+		"src": {{Target: "lib", Depth: config.DepthFiles}},
+	}
+	currentExt := map[string][]ExternalSpec{
+		"src": {},
+	}
+	actions := DiffWithExternals(desired, current, desiredExt, currentExt)
+	found := false
+	for _, a := range actions {
+		if a.External != nil && a.External.Target == "lib" && a.Kind == ActionAdd {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected ADD external action for lib, got %v", actions)
+	}
+}
+
+func TestDiffExternalUpgrade(t *testing.T) {
+	desired := map[string]config.Depth{"src": config.DepthInfinity}
+	current := map[string]config.Depth{"src": config.DepthInfinity}
+	desiredExt := map[string][]ExternalSpec{
+		"src": {{Target: "lib", Depth: config.DepthInfinity}},
+	}
+	currentExt := map[string][]ExternalSpec{
+		"src": {{Target: "lib", Depth: config.DepthFiles}},
+	}
+	actions := DiffWithExternals(desired, current, desiredExt, currentExt)
+	found := false
+	for _, a := range actions {
+		if a.External != nil && a.External.Target == "lib" && a.Kind == ActionUpgrade {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected UPGRADE external action for lib, got %v", actions)
+	}
+}
+
+func TestDiffExternalExclude(t *testing.T) {
+	desired := map[string]config.Depth{"src": config.DepthInfinity}
+	current := map[string]config.Depth{"src": config.DepthInfinity}
+	desiredExt := map[string][]ExternalSpec{
+		"src": {},
+	}
+	currentExt := map[string][]ExternalSpec{
+		"src": {{Target: "lib", Depth: config.DepthFiles}},
+	}
+	actions := DiffWithExternals(desired, current, desiredExt, currentExt)
+	found := false
+	for _, a := range actions {
+		if a.External != nil && a.External.Target == "lib" && a.Kind == ActionExclude {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected EXCLUDE external action for lib, got %v", actions)
+	}
+}
+
+func TestDiffExternalParentExclude(t *testing.T) {
+	desired := map[string]config.Depth{}
+	current := map[string]config.Depth{"src": config.DepthInfinity}
+	desiredExt := map[string][]ExternalSpec{}
+	currentExt := map[string][]ExternalSpec{
+		"src": {{Target: "lib", Depth: config.DepthFiles}},
+	}
+	actions := DiffWithExternals(desired, current, desiredExt, currentExt)
+	found := false
+	for _, a := range actions {
+		if a.External != nil && a.External.Target == "lib" && a.Kind == ActionExclude {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected auto-EXCLUDE external action for lib when parent excluded, got %v", actions)
+	}
+}
+
+func TestDiffExternalNoop(t *testing.T) {
+	desired := map[string]config.Depth{"src": config.DepthInfinity}
+	current := map[string]config.Depth{"src": config.DepthInfinity}
+	desiredExt := map[string][]ExternalSpec{
+		"src": {{Target: "lib", Depth: config.DepthFiles}},
+	}
+	currentExt := map[string][]ExternalSpec{
+		"src": {{Target: "lib", Depth: config.DepthFiles}},
+	}
+	actions := DiffWithExternals(desired, current, desiredExt, currentExt)
+	for _, a := range actions {
+		if a.External != nil && a.External.Target == "lib" {
+			t.Errorf("expected NOOP for lib, got %s", a.Kind)
+		}
+	}
+}
+
+func TestDiffExternalDowngrade(t *testing.T) {
+	desired := map[string]config.Depth{"src": config.DepthInfinity}
+	current := map[string]config.Depth{"src": config.DepthInfinity}
+	desiredExt := map[string][]ExternalSpec{
+		"src": {{Target: "lib", Depth: config.DepthEmpty}},
+	}
+	currentExt := map[string][]ExternalSpec{
+		"src": {{Target: "lib", Depth: config.DepthInfinity}},
+	}
+	actions := DiffWithExternals(desired, current, desiredExt, currentExt)
+	found := false
+	for _, a := range actions {
+		if a.External != nil && a.External.Target == "lib" && a.Kind == ActionDowngrade {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected DOWNGRADE external action for lib, got %v", actions)
+	}
+}
+
 func TestDiff_MixedScenario(t *testing.T) {
 	desired := map[string]config.Depth{
 		"a": config.DepthInfinity,
