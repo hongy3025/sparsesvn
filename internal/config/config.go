@@ -41,9 +41,15 @@ func ParseDepth(s string) (Depth, error) {
 	}
 }
 
+type ExternalSpec struct {
+	Target string
+	Depth  Depth
+}
+
 type PathSpec struct {
-	Path  string
-	Depth Depth
+	Path      string
+	Depth     Depth
+	Externals []ExternalSpec
 }
 
 type Config struct {
@@ -51,9 +57,15 @@ type Config struct {
 	Paths []PathSpec
 }
 
+type rawExternalSpec struct {
+	Target string `yaml:"target"`
+	Depth  string `yaml:"depth"`
+}
+
 type rawPathSpec struct {
-	Path  string `yaml:"path"`
-	Depth string `yaml:"depth"`
+	Path      string           `yaml:"path"`
+	Depth     string           `yaml:"depth"`
+	Externals []rawExternalSpec `yaml:"externals"`
 }
 
 type rawConfig struct {
@@ -81,7 +93,15 @@ func Load(path string) (*Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("load config %s: paths[%d]: %w", path, i, err)
 		}
-		cfg.Paths = append(cfg.Paths, PathSpec{Path: rp.Path, Depth: d})
+		ps := PathSpec{Path: rp.Path, Depth: d}
+		for j, re := range rp.Externals {
+			ed, err := ParseDepth(re.Depth)
+			if err != nil {
+				return nil, fmt.Errorf("load config %s: paths[%d].externals[%d]: %w", path, i, j, err)
+			}
+			ps.Externals = append(ps.Externals, ExternalSpec{Target: re.Target, Depth: ed})
+		}
+		cfg.Paths = append(cfg.Paths, ps)
 	}
 	if err := Validate(cfg); err != nil {
 		return nil, fmt.Errorf("load config %s: %w", path, err)

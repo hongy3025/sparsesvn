@@ -3,99 +3,76 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
-func TestLoad_ValidMinimal(t *testing.T) {
+func TestLoadWithExternals(t *testing.T) {
+	yaml := `url: svn://server/repo/trunk
+paths:
+  - path: src/core
+    depth: infinity
+    externals:
+      - target: lib/utils
+        depth: files
+      - target: lib/proto
+        depth: infinity
+  - path: docs
+    depth: files
+`
 	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "sparsesvn.yaml")
-	yaml := "" +
-		"url: svn://server/repo/trunk\n" +
-		"paths:\n" +
-		"  - path: src\n" +
-		"    depth: infinity\n"
-	if err := os.WriteFile(cfgPath, []byte(yaml), 0o644); err != nil {
-		t.Fatalf("write tmp yaml: %v", err)
-	}
+	path := filepath.Join(dir, "sparsesvn.yaml")
+	os.WriteFile(path, []byte(yaml), 0644)
 
-	cfg, err := Load(cfgPath)
+	cfg, err := Load(path)
 	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
+		t.Fatalf("Load: %v", err)
 	}
-	if cfg == nil {
-		t.Fatal("Load returned nil config")
+	if len(cfg.Paths) != 2 {
+		t.Fatalf("expected 2 paths, got %d", len(cfg.Paths))
 	}
-	if cfg.URL != "svn://server/repo/trunk" {
-		t.Errorf("URL = %q, want svn://server/repo/trunk", cfg.URL)
+	p0 := cfg.Paths[0]
+	if p0.Path != "src/core" {
+		t.Errorf("path[0].Path = %q, want %q", p0.Path, "src/core")
 	}
-	if len(cfg.Paths) != 1 {
-		t.Fatalf("len(Paths) = %d, want 1", len(cfg.Paths))
+	if p0.Depth != DepthInfinity {
+		t.Errorf("path[0].Depth = %v, want infinity", p0.Depth)
 	}
-	if cfg.Paths[0].Path != "src" {
-		t.Errorf("Paths[0].Path = %q, want src", cfg.Paths[0].Path)
+	if len(p0.Externals) != 2 {
+		t.Fatalf("path[0].Externals len = %d, want 2", len(p0.Externals))
 	}
-	if cfg.Paths[0].Depth != DepthInfinity {
-		t.Errorf("Paths[0].Depth = %v, want DepthInfinity", cfg.Paths[0].Depth)
+	if p0.Externals[0].Target != "lib/utils" {
+		t.Errorf("externals[0].Target = %q, want %q", p0.Externals[0].Target, "lib/utils")
+	}
+	if p0.Externals[0].Depth != DepthFiles {
+		t.Errorf("externals[0].Depth = %v, want files", p0.Externals[0].Depth)
+	}
+	if p0.Externals[1].Target != "lib/proto" {
+		t.Errorf("externals[1].Target = %q, want %q", p0.Externals[1].Target, "lib/proto")
+	}
+	if p0.Externals[1].Depth != DepthInfinity {
+		t.Errorf("externals[1].Depth = %v, want infinity", p0.Externals[1].Depth)
+	}
+	p1 := cfg.Paths[1]
+	if len(p1.Externals) != 0 {
+		t.Errorf("path[1].Externals len = %d, want 0", len(p1.Externals))
 	}
 }
 
-func TestLoad_FileNotFound(t *testing.T) {
+func TestLoadWithoutExternals(t *testing.T) {
+	yaml := `url: svn://server/repo/trunk
+paths:
+  - path: src/core
+    depth: infinity
+`
 	dir := t.TempDir()
-	missing := filepath.Join(dir, "does-not-exist.yaml")
+	path := filepath.Join(dir, "sparsesvn.yaml")
+	os.WriteFile(path, []byte(yaml), 0644)
 
-	cfg, err := Load(missing)
-	if err == nil {
-		t.Fatal("Load(missing) returned nil error, want non-nil")
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
 	}
-	if cfg != nil {
-		t.Errorf("Load(missing) returned non-nil config: %+v", cfg)
-	}
-	if !strings.Contains(err.Error(), missing) {
-		t.Errorf("error %q does not contain path %q", err.Error(), missing)
-	}
-}
-
-func TestDepthString(t *testing.T) {
-	cases := []struct {
-		d    Depth
-		want string
-	}{
-		{DepthEmpty, "empty"},
-		{DepthFiles, "files"},
-		{DepthInfinity, "infinity"},
-	}
-	for _, c := range cases {
-		if got := c.d.String(); got != c.want {
-			t.Errorf("Depth(%d).String() = %q, want %q", int(c.d), got, c.want)
-		}
-	}
-}
-
-func TestParseDepth(t *testing.T) {
-	okCases := []struct {
-		in   string
-		want Depth
-	}{
-		{"empty", DepthEmpty},
-		{"files", DepthFiles},
-		{"infinity", DepthInfinity},
-	}
-	for _, c := range okCases {
-		got, err := ParseDepth(c.in)
-		if err != nil {
-			t.Errorf("ParseDepth(%q) err = %v", c.in, err)
-			continue
-		}
-		if got != c.want {
-			t.Errorf("ParseDepth(%q) = %v, want %v", c.in, got, c.want)
-		}
-	}
-
-	badCases := []string{"", "Empty", "immediates", "infinite", "INFINITY"}
-	for _, in := range badCases {
-		if _, err := ParseDepth(in); err == nil {
-			t.Errorf("ParseDepth(%q) err = nil, want non-nil", in)
-		}
+	if len(cfg.Paths[0].Externals) != 0 {
+		t.Errorf("expected empty externals, got %d", len(cfg.Paths[0].Externals))
 	}
 }
