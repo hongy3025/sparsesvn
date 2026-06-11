@@ -12,9 +12,9 @@ paths:
   - path: src/core
     depth: infinity
     externals:
-      - target: lib/utils
+      - target: utils
         depth: files
-      - target: lib/proto
+      - target: proto
         depth: infinity
   - path: docs
     depth: files
@@ -40,14 +40,14 @@ paths:
 	if len(p0.Externals) != 2 {
 		t.Fatalf("path[0].Externals len = %d, want 2", len(p0.Externals))
 	}
-	if p0.Externals[0].Target != "lib/utils" {
-		t.Errorf("externals[0].Target = %q, want %q", p0.Externals[0].Target, "lib/utils")
+	if p0.Externals[0].Target != "utils" {
+		t.Errorf("externals[0].Target = %q, want %q", p0.Externals[0].Target, "utils")
 	}
 	if p0.Externals[0].Depth != DepthFiles {
 		t.Errorf("externals[0].Depth = %v, want files", p0.Externals[0].Depth)
 	}
-	if p0.Externals[1].Target != "lib/proto" {
-		t.Errorf("externals[1].Target = %q, want %q", p0.Externals[1].Target, "lib/proto")
+	if p0.Externals[1].Target != "proto" {
+		t.Errorf("externals[1].Target = %q, want %q", p0.Externals[1].Target, "proto")
 	}
 	if p0.Externals[1].Depth != DepthInfinity {
 		t.Errorf("externals[1].Depth = %v, want infinity", p0.Externals[1].Depth)
