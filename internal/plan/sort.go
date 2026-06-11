@@ -9,6 +9,15 @@ func pathDepth(p string) int {
 	return strings.Count(p, "/")
 }
 
+// sortPath returns the effective path for sorting purposes.
+// For external actions, this is parentPath/target (one level deeper).
+func sortPath(a Action) string {
+	if a.External != nil {
+		return a.External.ParentPath + "/" + a.External.Target
+	}
+	return a.Path
+}
+
 func Sort(actions []Action) {
 	sort.SliceStable(actions, func(i, j int) bool {
 		a, b := actions[i], actions[j]
@@ -17,8 +26,10 @@ func Sort(actions []Action) {
 		if aGroup != bGroup {
 			return aGroup < bGroup
 		}
-		aDepth := pathDepth(a.Path)
-		bDepth := pathDepth(b.Path)
+		aSortPath := sortPath(a)
+		bSortPath := sortPath(b)
+		aDepth := pathDepth(aSortPath)
+		bDepth := pathDepth(bSortPath)
 		if aGroup == 0 {
 			if aDepth != bDepth {
 				return aDepth < bDepth
@@ -28,7 +39,7 @@ func Sort(actions []Action) {
 				return aDepth > bDepth
 			}
 		}
-		return a.Path < b.Path
+		return aSortPath < bSortPath
 	})
 }
 

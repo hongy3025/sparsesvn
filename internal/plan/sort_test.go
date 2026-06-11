@@ -142,6 +142,45 @@ func TestSort_UpgradeParentBeforeChild(t *testing.T) {
 	}
 }
 
+func TestSortWithExternals(t *testing.T) {
+	actions := []Action{
+		{Kind: ActionAdd, Path: "src/core", ToDepth: config.DepthInfinity},
+		{Kind: ActionAdd, Path: "src/core", ToDepth: config.DepthFiles, External: &ExternalAction{Target: "lib", ParentPath: "src/core"}},
+		{Kind: ActionAdd, Path: "src", ToDepth: config.DepthEmpty},
+	}
+	Sort(actions)
+	// src (depth 0) should come before src/core (depth 1)
+	// src/core (depth 1) should come before src/core/lib (effective depth 2)
+	if actions[0].Path != "src" {
+		t.Errorf("actions[0].Path = %q, want src", actions[0].Path)
+	}
+	if actions[1].Path != "src/core" || actions[1].External != nil {
+		t.Errorf("actions[1] = %v, want src/core path action", actions[1])
+	}
+	if actions[2].External == nil || actions[2].External.Target != "lib" {
+		t.Errorf("actions[2] = %v, want src/core/lib external action", actions[2])
+	}
+}
+
+func TestSortExcludeWithExternals(t *testing.T) {
+	actions := []Action{
+		{Kind: ActionExclude, Path: "src", FromDepth: config.DepthInfinity},
+		{Kind: ActionExclude, Path: "src/core", FromDepth: config.DepthFiles, External: &ExternalAction{Target: "lib", ParentPath: "src/core"}},
+		{Kind: ActionExclude, Path: "src/core", FromDepth: config.DepthInfinity},
+	}
+	Sort(actions)
+	// Deeper first: src/core/lib external (depth 2), then src/core (depth 1), then src (depth 0)
+	if actions[0].External == nil || actions[0].External.Target != "lib" {
+		t.Errorf("actions[0] = %v, want external exclude first", actions[0])
+	}
+	if actions[1].Path != "src/core" || actions[1].External != nil {
+		t.Errorf("actions[1] = %v, want src/core path exclude", actions[1])
+	}
+	if actions[2].Path != "src" {
+		t.Errorf("actions[2].Path = %q, want src", actions[2].Path)
+	}
+}
+
 func TestSort_ComplexMixed(t *testing.T) {
 	actions := []Action{
 		{Kind: ActionExclude, Path: "src/a/b"},
