@@ -86,14 +86,23 @@ func Apply(ctx context.Context, opts Options) *Result {
 	expandResult := plan.Expand(cfg)
 	desired := expandResult.Paths
 	current := make(map[string]config.Depth)
+	currentExt := make(map[string][]plan.ExternalSpec)
 	if exists {
 		for _, p := range st.Paths {
 			current[p.Path] = p.Depth
+			var exts []plan.ExternalSpec
+			for _, e := range p.Externals {
+				exts = append(exts, plan.ExternalSpec{Target: e.Target, Depth: e.Depth})
+			}
+			if exts == nil {
+				exts = []plan.ExternalSpec{}
+			}
+			currentExt[p.Path] = exts
 		}
 	}
 
 	// Step 8: diff + sort
-	actions := plan.Diff(desired, current)
+	actions := plan.DiffWithExternals(desired, current, expandResult.Externals, currentExt)
 	plan.Sort(actions)
 	r.Plan = actions
 
@@ -104,7 +113,7 @@ func Apply(ctx context.Context, opts Options) *Result {
 			return r
 		}
 		r.ExecutedCount = 1
-		newState := buildState(configHash, finalURL, current)
+		newState := buildStateFromMaps(configHash, finalURL, current, currentExt)
 		if saveErr := state.Save(opts.Workdir, newState); saveErr != nil {
 			r.Err = fmt.Errorf("save state: %w", saveErr)
 		}
@@ -115,7 +124,7 @@ func Apply(ctx context.Context, opts Options) *Result {
 	// Step 10: dry run
 	if opts.DryRun {
 		r.ExecutedCount = 0
-		r.StateAfter = buildState(configHash, finalURL, current)
+		r.StateAfter = buildStateFromMaps(configHash, finalURL, current, currentExt)
 		return r
 	}
 
@@ -132,18 +141,22 @@ func Apply(ctx context.Context, opts Options) *Result {
 	for i := range actions {
 		a := &actions[i]
 		var execErr error
-		switch a.Kind {
-		case plan.ActionAdd, plan.ActionUpgrade, plan.ActionDowngrade:
-			execErr = svn.SetDepth(ctx, opts.Client, opts.Workdir, a.Path, a.ToDepth, opts.Revision)
-		case plan.ActionExclude:
-			execErr = svn.Exclude(ctx, opts.Client, opts.Workdir, a.Path, opts.Revision)
+		if a.External != nil {
+			execErr = executeExternalAction(ctx, opts, a)
+		} else {
+			switch a.Kind {
+			case plan.ActionAdd, plan.ActionUpgrade, plan.ActionDowngrade:
+				execErr = svn.SetDepth(ctx, opts.Client, opts.Workdir, a.Path, a.ToDepth, opts.Revision)
+			case plan.ActionExclude:
+				execErr = svn.Exclude(ctx, opts.Client, opts.Workdir, a.Path, opts.Revision)
+			}
 		}
 		if execErr != nil {
 			r.FailedAction = a
-			r.Err = fmt.Errorf("%w: action %s %s: %w", ErrSvnFailed, a.Kind, a.Path, execErr)
+			r.Err = fmt.Errorf("%w: action %s %s: %w", ErrSvnFailed, a.Kind, actionLabel(a), execErr)
 			r.ExecutedCount = executedCount
 			// Write half-state
-			halfState := buildState("", finalURL, current)
+			halfState := buildStateFromMaps("", finalURL, current, currentExt)
 			if saveErr := state.Save(opts.Workdir, halfState); saveErr != nil {
 				r.Err = fmt.Errorf("%w; save state: %v", r.Err, saveErr)
 			}
@@ -152,18 +165,23 @@ func Apply(ctx context.Context, opts Options) *Result {
 		}
 		executedCount++
 		// Apply change to current map
-		switch a.Kind {
-		case plan.ActionAdd, plan.ActionUpgrade, plan.ActionDowngrade:
-			current[a.Path] = a.ToDepth
-		case plan.ActionExclude:
-			delete(current, a.Path)
+		if a.External != nil {
+			applyExternalActionToCurrent(a, currentExt)
+		} else {
+			switch a.Kind {
+			case plan.ActionAdd, plan.ActionUpgrade, plan.ActionDowngrade:
+				current[a.Path] = a.ToDepth
+			case plan.ActionExclude:
+				delete(current, a.Path)
+				delete(currentExt, a.Path)
+			}
 		}
 	}
 
 	r.ExecutedCount = executedCount
 
 	// Step 13: write state on success
-	newState := buildState(configHash, finalURL, current)
+	newState := buildStateFromMaps(configHash, finalURL, current, currentExt)
 	if saveErr := state.Save(opts.Workdir, newState); saveErr != nil {
 		r.Err = fmt.Errorf("save state: %w", saveErr)
 	}
@@ -182,9 +200,19 @@ func Compute(ctx context.Context, opts Options) (*Result, error) {
 }
 
 func buildState(configHash, url string, current map[string]config.Depth) *state.State {
+	return buildStateFromMaps(configHash, url, current, nil)
+}
+
+func buildStateFromMaps(configHash, url string, current map[string]config.Depth, currentExt map[string][]plan.ExternalSpec) *state.State {
 	paths := make([]state.PathEntry, 0, len(current))
 	for p, d := range current {
-		paths = append(paths, state.PathEntry{Path: p, Depth: d})
+		pe := state.PathEntry{Path: p, Depth: d}
+		if currentExt != nil {
+			for _, ext := range currentExt[p] {
+				pe.Externals = append(pe.Externals, state.ExternalEntry{Target: ext.Target, Depth: ext.Depth})
+			}
+		}
+		paths = append(paths, pe)
 	}
 	sort.Slice(paths, func(i, j int) bool { return paths[i].Path < paths[j].Path })
 	return &state.State{
@@ -193,5 +221,64 @@ func buildState(configHash, url string, current map[string]config.Depth) *state.
 		URL:        url,
 		AppliedAt:  time.Now().UTC(),
 		Paths:      paths,
+	}
+}
+
+// actionLabel returns a human-readable label for the action.
+func actionLabel(a *plan.Action) string {
+	if a.External != nil {
+		return a.External.ParentPath + "/" + a.External.Target
+	}
+	return a.Path
+}
+
+// executeExternalAction executes an external action.
+func executeExternalAction(ctx context.Context, opts Options, a *plan.Action) error {
+	switch a.Kind {
+	case plan.ActionAdd:
+		extDefs, err := svn.GetExternals(ctx, opts.Client, opts.Workdir, a.External.ParentPath)
+		if err != nil {
+			return fmt.Errorf("get externals for %s: %w", a.External.ParentPath, err)
+		}
+		extDef, ok := extDefs[a.External.Target]
+		if !ok {
+			return fmt.Errorf("external %q not found in svn:externals of %s", a.External.Target, a.External.ParentPath)
+		}
+		return svn.CheckoutExternal(ctx, opts.Client, opts.Workdir, a.External.ParentPath, a.External.Target, extDef.URL, a.ToDepth.String(), extDef.Revision, opts.Revision)
+	case plan.ActionUpgrade, plan.ActionDowngrade:
+		return svn.SetDepth(ctx, opts.Client, opts.Workdir, a.External.ParentPath+"/"+a.External.Target, a.ToDepth, opts.Revision)
+	case plan.ActionExclude:
+		return svn.Exclude(ctx, opts.Client, opts.Workdir, a.External.ParentPath+"/"+a.External.Target, opts.Revision)
+	default:
+		return fmt.Errorf("unknown external action kind: %d", a.Kind)
+	}
+}
+
+// applyExternalActionToCurrent updates currentExt based on the executed action.
+func applyExternalActionToCurrent(a *plan.Action, currentExt map[string][]plan.ExternalSpec) {
+	parentPath := a.External.ParentPath
+	exts := currentExt[parentPath]
+	switch a.Kind {
+	case plan.ActionAdd, plan.ActionUpgrade, plan.ActionDowngrade:
+		found := false
+		for i := range exts {
+			if exts[i].Target == a.External.Target {
+				exts[i].Depth = a.ToDepth
+				found = true
+				break
+			}
+		}
+		if !found {
+			exts = append(exts, plan.ExternalSpec{Target: a.External.Target, Depth: a.ToDepth})
+		}
+		currentExt[parentPath] = exts
+	case plan.ActionExclude:
+		filtered := make([]plan.ExternalSpec, 0, len(exts))
+		for _, e := range exts {
+			if e.Target != a.External.Target {
+				filtered = append(filtered, e)
+			}
+		}
+		currentExt[parentPath] = filtered
 	}
 }

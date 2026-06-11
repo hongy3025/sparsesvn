@@ -734,6 +734,94 @@ paths:
 	}
 }
 
+func TestApplyWithExternalAdd(t *testing.T) {
+	dir := t.TempDir()
+	yaml := "url: svn://server/repo/trunk\npaths:\n  - path: src\n    depth: infinity\n    externals:\n      - target: utils\n        depth: files\n"
+	configPath := dir + "/sparsesvn.yaml"
+	os.WriteFile(configPath, []byte(yaml), 0644)
+
+	// Create a fake working copy
+	os.MkdirAll(dir+"/.svn", 0755)
+
+	fc := &svn.FakeClient{
+		StdoutByArgs: []svn.StdoutMatch{
+			{ArgsContains: []string{"propget"}, Stdout: "utils svn://server/repo/trunk/utils\n"},
+		},
+	}
+	opts := Options{
+		ConfigPath: configPath,
+		Workdir:    dir,
+		Client:     fc,
+	}
+	result := Apply(context.Background(), opts)
+	if result.Err != nil {
+		t.Fatalf("Apply: %v", result.Err)
+	}
+	// Should have executed: SetDepth for src, then propget + CheckoutExternal for utils
+	foundPropget := false
+	foundCheckout := false
+	for _, call := range fc.Calls {
+		for _, arg := range call.Args {
+			if arg == "propget" {
+				foundPropget = true
+			}
+			if arg == "checkout" {
+				foundCheckout = true
+			}
+		}
+	}
+	if !foundPropget {
+		t.Error("expected propget call for externals")
+	}
+	if !foundCheckout {
+		t.Error("expected checkout call for external")
+	}
+}
+
+func TestApplyExternalExclude(t *testing.T) {
+	dir := t.TempDir()
+	yaml := "url: svn://server/repo/trunk\npaths:\n  - path: src\n    depth: infinity\n"
+	configPath := dir + "/sparsesvn.yaml"
+	os.WriteFile(configPath, []byte(yaml), 0644)
+	os.MkdirAll(dir+"/.svn", 0755)
+
+	// Write a state file with an external
+	stateYaml := "# sparsesvn state file - DO NOT EDIT MANUALLY\n" +
+		"version: 2\n" +
+		"config_hash: \"\"\n" +
+		"url: \"svn://server/repo/trunk\"\n" +
+		"applied_at: 2026-06-11T10:00:00Z\n" +
+		"paths:\n" +
+		"  - path: src\n" +
+		"    depth: infinity\n" +
+		"    externals:\n" +
+		"      - target: utils\n" +
+		"        depth: files\n"
+	os.MkdirAll(dir+"/.svn", 0755)
+	os.WriteFile(dir+"/.svn/sparsesvn.state.yaml", []byte(stateYaml), 0644)
+
+	fc := &svn.FakeClient{}
+	opts := Options{
+		ConfigPath: configPath,
+		Workdir:    dir,
+		Client:     fc,
+	}
+	result := Apply(context.Background(), opts)
+	if result.Err != nil {
+		t.Fatalf("Apply: %v", result.Err)
+	}
+	// Should have an exclude action for the external
+	foundExclude := false
+	for _, a := range result.Plan {
+		if a.External != nil && a.External.Target == "utils" && a.Kind == plan.ActionExclude {
+			foundExclude = true
+		}
+	}
+	if !foundExclude {
+		t.Errorf("expected EXCLUDE external action for utils, plan: %v", result.Plan)
+	}
+}
+
 // Ensure Compute works with URL override
 func TestCompute_URLOverride(t *testing.T) {
 	dir := t.TempDir()
