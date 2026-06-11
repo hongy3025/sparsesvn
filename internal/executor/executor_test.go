@@ -304,10 +304,29 @@ paths:
 	excludeIdx := -1
 	for i, call := range fake.Calls {
 		args := call.Args
-		if len(args) >= 4 && args[0] == "update" && args[1] == "--set-depth" && args[2] == "empty" && args[3] == "trunk/src" {
+		hasSetDepth := false
+		hasPath := false
+		depthVal := ""
+		pathVal := ""
+		for _, arg := range args {
+			if arg == "--set-depth" {
+				hasSetDepth = true
+			}
+		}
+		if hasSetDepth && len(args) >= 2 {
+			// Find depth value (after --set-depth) and path (last arg)
+			for j := 0; j < len(args)-1; j++ {
+				if args[j] == "--set-depth" {
+					depthVal = args[j+1]
+				}
+			}
+			pathVal = args[len(args)-1]
+			hasPath = true
+		}
+		if hasPath && depthVal == "empty" && pathVal == "trunk/src" {
 			downgradeIdx = i
 		}
-		if len(args) >= 4 && args[0] == "update" && args[1] == "--set-depth" && args[2] == "exclude" && args[3] == "trunk/docs" {
+		if hasPath && depthVal == "exclude" && pathVal == "trunk/docs" {
 			excludeIdx = i
 		}
 	}
