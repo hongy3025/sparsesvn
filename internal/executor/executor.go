@@ -83,7 +83,8 @@ func Apply(ctx context.Context, opts Options) *Result {
 	}
 
 	// Step 7: expand + build current map
-	desired := plan.Expand(cfg)
+	expandResult := plan.Expand(cfg)
+	desired := expandResult.Paths
 	current := make(map[string]config.Depth)
 	if exists {
 		for _, p := range st.Paths {

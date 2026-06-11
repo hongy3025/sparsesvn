@@ -30,9 +30,15 @@ func (k ActionKind) String() string {
 	}
 }
 
+type ExternalAction struct {
+	Target     string
+	ParentPath string
+}
+
 type Action struct {
 	Kind      ActionKind
 	Path      string
 	FromDepth config.Depth
 	ToDepth   config.Depth
+	External  *ExternalAction
 }
