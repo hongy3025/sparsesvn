@@ -20,7 +20,7 @@ func TestCheckout_BuildsArgs(t *testing.T) {
 		t.Fatalf("expected 1 call, got %d", len(f.Calls))
 	}
 	call := f.Calls[0]
-	want := []string{"checkout", "--depth", "empty", "svn://x", "/tmp/w"}
+	want := []string{"checkout", "--depth", "empty", "--ignore-externals", "svn://x", "/tmp/w"}
 	if len(call.Args) != len(want) {
 		t.Fatalf("args len = %d, want %d; got %v", len(call.Args), len(want), call.Args)
 	}
@@ -39,7 +39,7 @@ func TestCheckout_WithRevision(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	call := f.Calls[0]
-	want := []string{"checkout", "--depth", "empty", "-r", "100", "svn://x", "/tmp/w"}
+	want := []string{"checkout", "--depth", "empty", "--ignore-externals", "-r", "100", "svn://x", "/tmp/w"}
 	if len(call.Args) != len(want) {
 		t.Fatalf("args len = %d, want %d; got %v", len(call.Args), len(want), call.Args)
 	}
@@ -58,7 +58,7 @@ func TestSetDepth_Empty(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	call := f.Calls[0]
-	want := []string{"update", "--set-depth", "empty", "trunk/src"}
+	want := []string{"update", "--set-depth", "empty", "--ignore-externals", "trunk/src"}
 	assertArgs(t, call.Args, want)
 	if call.Cwd != "/workdir" {
 		t.Errorf("cwd = %q, want %q", call.Cwd, "/workdir")
@@ -73,7 +73,7 @@ func TestSetDepth_Files(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	call := f.Calls[0]
-	want := []string{"update", "--set-depth", "files", "trunk/src"}
+	want := []string{"update", "--set-depth", "files", "--ignore-externals", "trunk/src"}
 	assertArgs(t, call.Args, want)
 }
 
@@ -85,7 +85,7 @@ func TestSetDepth_Infinity(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	call := f.Calls[0]
-	want := []string{"update", "--set-depth", "infinity", "trunk/src"}
+	want := []string{"update", "--set-depth", "infinity", "--ignore-externals", "trunk/src"}
 	assertArgs(t, call.Args, want)
 }
 
@@ -97,7 +97,7 @@ func TestSetDepth_WithRevision(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	call := f.Calls[0]
-	want := []string{"update", "--set-depth", "empty", "-r", "42", "trunk/src"}
+	want := []string{"update", "--set-depth", "empty", "--ignore-externals", "-r", "42", "trunk/src"}
 	assertArgs(t, call.Args, want)
 }
 
@@ -109,7 +109,7 @@ func TestExclude_BuildsArgs(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	call := f.Calls[0]
-	want := []string{"update", "--set-depth", "exclude", "trunk/old"}
+	want := []string{"update", "--set-depth", "exclude", "--ignore-externals", "trunk/old"}
 	assertArgs(t, call.Args, want)
 	if call.Cwd != "/workdir" {
 		t.Errorf("cwd = %q, want %q", call.Cwd, "/workdir")
@@ -124,7 +124,7 @@ func TestUpdateRoot_BuildsArgs(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	call := f.Calls[0]
-	want := []string{"update", "-r", "500"}
+	want := []string{"update", "--ignore-externals", "-r", "500"}
 	assertArgs(t, call.Args, want)
 	if call.Cwd != "/workdir" {
 		t.Errorf("cwd = %q, want %q", call.Cwd, "/workdir")

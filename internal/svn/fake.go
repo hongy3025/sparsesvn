@@ -18,7 +18,14 @@ type FakeClient struct {
 	FailOn []FakeFailRule
 	// StdoutResponse：Run 方法返回的自定义 Stdout 内容（所有调用共享）
 	StdoutResponse string
+	// StdoutByArgs：按 Args 匹配返回特定 Stdout（优先于 StdoutResponse）
+	StdoutByArgs []StdoutMatch
 	// 默认 Run 返回 ExitCode=0, Stdout="", Err=nil
+}
+
+type StdoutMatch struct {
+	ArgsContains []string
+	Stdout       string
 }
 
 type FakeCall struct {
@@ -45,10 +52,18 @@ func (f *FakeClient) Run(ctx context.Context, cwd string, args ...string) (*Resu
 			}, nil
 		}
 	}
+	// Check StdoutByArgs match
+	stdout := f.StdoutResponse
+	for _, m := range f.StdoutByArgs {
+		if matchFailRule(FakeFailRule{ArgsContains: m.ArgsContains}, argsCopy) {
+			stdout = m.Stdout
+			break
+		}
+	}
 	// 默认成功
 	return &Result{
 		Args:     argsCopy,
-		Stdout:   f.StdoutResponse,
+		Stdout:   stdout,
 		ExitCode: 0,
 	}, nil
 }
