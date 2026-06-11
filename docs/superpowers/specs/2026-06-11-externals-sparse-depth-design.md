@@ -1,7 +1,7 @@
 # sparsesvn externals 稀疏深度控制设计
 
 - 日期：2026-06-11
-- 状态：草案（待实现）
+- 状态：已实现
 - 前置规格：`2026-06-09-sparsesvn-design.md`
 
 ---
