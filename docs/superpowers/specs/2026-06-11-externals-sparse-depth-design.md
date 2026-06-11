@@ -18,7 +18,7 @@ sparsesvn 目前完全不处理 SVN externals——执行 `svn checkout` / `svn 
 
 **范围约束**：
 - 仅处理同仓库内 externals（用户确认这是主要场景）
-- 不做 externals 的自动发现或校验（不做 `svn propget` 扫描校验"配置中声明的 external 是否存在于仓库"——这属于 lint 功能，YAGNI）
+- 不做 externals 的配置时自动发现校验（即不在 `validate` 子命令中扫描仓库校验"声明的 external 是否存在于 `svn:externals` 属性中"——这需要网络访问，属于 lint 功能，YAGNI）。运行时执行 external ADD 动作时会调用 `svn propget svn:externals` 获取 URL，这是必须的运行时操作，与配置校验不同
 - 不改变现有 paths 的行为和语义
 
 ---
@@ -127,7 +127,7 @@ type ExternalSpec struct {
 
 ```go
 type Action struct {
-    Path      string
+    Path      string           // 对普通 path 动作 = 路径; 对 external 动作 = ParentPath
     Kind      ActionKind       // ADD / UPGRADE / DOWNGRADE / EXCLUDE
     FromDepth config.Depth
     ToDepth   config.Depth
@@ -136,7 +136,7 @@ type Action struct {
 
 type ExternalAction struct {
     Target     string   // external 的本地目录名
-    ParentPath string   // 所属的父 path
+    ParentPath string   // 所属的父 path（与 Action.Path 相同，冗余但便于独立访问）
 }
 ```
 
@@ -181,12 +181,18 @@ type ExternalAction struct {
 **新增函数**：
 
 ```go
+// ExternalDef 描述一个 svn:externals 条目
+type ExternalDef struct {
+    URL      string   // external 的源 URL
+    Revision string   // 版本限定（空字符串表示无版本限定）
+}
+
 // GetExternals 读取工作副本中某目录的 svn:externals 属性
-// 返回 {target: url} 映射
-func GetExternals(ctx context.Context, c Client, workdir, path string) (map[string]string, error)
+// 返回 {target: ExternalDef} 映射
+func GetExternals(ctx context.Context, c Client, workdir, path string) (map[string]ExternalDef, error)
 
 // CheckoutExternal 将 external 的源 URL checkout 到本地路径
-func CheckoutExternal(ctx context.Context, c Client, workdir, parentPath, target, url string, depth config.Depth, revision string) error
+func CheckoutExternal(ctx context.Context, c Client, workdir, parentPath, target, url string, depth config.Depth, extRevision, cliRevision string) error
 ```
 
 `GetExternals` 执行：`svn propget svn:externals <path>`，解析输出为 target-URL 映射。
@@ -198,7 +204,9 @@ target [-rN] URL
 ```
 两种格式都需解析。`-rN` 为可选的版本限定。
 
-`CheckoutExternal` 执行：`svn checkout --depth <depth> --ignore-externals <url> <workdir>/<parentPath>/<target>`
+**版本限定处理**：`svn:externals` 中的 `-rN` 是 externals 定义的一部分。`GetExternals` 解析时提取版本号，`CheckoutExternal` 执行时使用 `svn:externals` 中指定的版本（而非 CLI 的 `--revision` 参数）。这确保 externals 的版本与仓库定义一致。
+
+`CheckoutExternal` 执行：`svn checkout --depth <depth> --ignore-externals [-r N] <url> <workdir>/<parentPath>/<target>`
 
 ### 6.2 执行器变更
 
